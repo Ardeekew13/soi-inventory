@@ -6,6 +6,7 @@ export const GET_PRODUCTS = gql`
 			id
 			name
 			price
+			availableUnits
 			ingredientsUsed {
 				item {
 					id

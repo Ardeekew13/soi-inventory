@@ -6,6 +6,7 @@ export const GET_SALES = gql`
 			createdAt
 			id
 			status
+			orderNo
 			costOfGoods
 			grossProfit
 			saleItems {

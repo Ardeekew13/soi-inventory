@@ -91,6 +91,7 @@ const AddProductModal = (props: ProductModalProps) => {
 				id: item.id,
 				name: "name" in item ? item.name : "",
 				unit: "unit" in item ? item.unit : "",
+				pricePerUnit: "pricePerUnit" in item ? item.pricePerUnit : 0,
 			},
 			quantityUsed: 1,
 		}));
@@ -243,6 +244,7 @@ const AddProductModal = (props: ProductModalProps) => {
 			),
 		},
 	];
+	console.log("ingredients", ingredients);
 
 	return (
 		<Modal

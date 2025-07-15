@@ -28,10 +28,10 @@ const TransactionListTable = (props: IProps) => {
 	} = useModal();
 	const columns: TableProps<Sale>["columns"] = [
 		{
-			title: "Transaction ID",
-			dataIndex: "id",
-			key: "id",
-			width: "30%",
+			title: "Transaction Number",
+			dataIndex: "orderNo",
+			key: "orderNo",
+			width: "10%",
 		},
 		{
 			title: "Transaction Date",
@@ -68,6 +68,7 @@ const TransactionListTable = (props: IProps) => {
 			key: "action",
 			width: "10%",
 			align: "center",
+			fixed: "right",
 			render: (_, record: Sale) => {
 				return (
 					<Space
@@ -102,7 +103,7 @@ const TransactionListTable = (props: IProps) => {
 					loading={loading}
 					dataSource={data ?? ([] as Sale[])}
 					size="small"
-					scroll={{ x: 500 }}
+					scroll={{ x: 1000 }}
 				/>
 			</StyledDiv>
 			<VoidTransactionModal

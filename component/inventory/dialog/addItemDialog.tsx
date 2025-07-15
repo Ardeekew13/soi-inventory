@@ -59,7 +59,7 @@ const AddItemModal = (props: ItemModalProps) => {
 			messageApi.error(e.message);
 		}
 	};
-	console.log(record);
+
 	return (
 		<Modal
 			destroyOnHidden={true}

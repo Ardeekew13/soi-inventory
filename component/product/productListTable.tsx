@@ -63,6 +63,7 @@ const ProductListTable = (props: IProps) => {
 			key: "action",
 			width: "10%",
 			align: "center",
+			fixed: "right",
 			render: (_, record: Product) => {
 				return (
 					<Space
@@ -101,7 +102,7 @@ const ProductListTable = (props: IProps) => {
 					loading={loading || deleteLoading}
 					dataSource={data ?? ([] as Product[])}
 					size="small"
-					scroll={{ x: 500 }}
+					scroll={{ x: 800 }}
 				/>
 			</StyledDiv>
 		</div>

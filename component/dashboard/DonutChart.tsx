@@ -12,27 +12,21 @@ const ReactApexChart = dynamic(() => import("react-apexcharts"), {
 interface IProps {
 	data: Maybe<SaleReportGroup>;
 }
-const DonutChart = (props: IProps) => {
-	const { data } = props;
+
+const DonutChart = ({ data }: IProps) => {
 	const topProductSold = data?.topProductSold ?? [];
 
 	const options: ApexOptions = {
 		chart: {
-			width: 400,
 			type: "donut",
+			toolbar: {
+				show: false,
+			},
 		},
 		labels: topProductSold.map((item) => item.name),
-		colors: [
-			"#1E3A8A", // Deep navy (brand)
-			"#2563EB", // Royal blue
-			"#3B82F6", // Tailwind blue
-			"#60A5FA", // Sky blue
-			"#93C5FD", // Light ice blue
-		],
+		colors: ["#1E3A8A", "#2563EB", "#3B82F6", "#60A5FA", "#93C5FD"],
 		legend: {
-			position: "right",
-			horizontalAlign: "center",
-
+			position: "bottom",
 			fontSize: "14px",
 		},
 		dataLabels: {
@@ -53,23 +47,33 @@ const DonutChart = (props: IProps) => {
 				fontSize: "16px",
 			},
 		},
+		responsive: [
+			{
+				breakpoint: 768,
+				options: {
+					chart: {
+						width: "100%",
+					},
+					legend: {
+						position: "bottom",
+					},
+				},
+			},
+		],
 	};
 
 	const series = topProductSold.map((item) => item.quantity);
+
 	return (
-		<Suspense
-			fallback={
-				<div>
-					<Skeleton active />
-				</div>
-			}
-		>
-			<ReactApexChart
-				options={options}
-				series={series}
-				type="donut"
-				width={500}
-			/>
+		<Suspense fallback={<Skeleton active />}>
+			<div style={{ width: "100%", maxWidth: 400, margin: "0 auto" }}>
+				<ReactApexChart
+					options={options}
+					series={series}
+					type="donut"
+					width="100%"
+				/>
+			</div>
 		</Suspense>
 	);
 };

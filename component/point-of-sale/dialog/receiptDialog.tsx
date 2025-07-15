@@ -38,7 +38,7 @@ const ReceiptDialog = (props: IProps) => {
 			}
 
 			const receiptDate = dayjs(sale.createdAt).format("MMMM D, YYYY h:mm A");
-			const orderNumber = sale.id;
+			const orderNumber = sale.orderNo;
 
 			const printWindow = window.open("", "_blank");
 			if (printWindow) {

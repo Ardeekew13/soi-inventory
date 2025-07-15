@@ -6,6 +6,7 @@ export const RECORD_SALE = gql`
 			id
 			totalAmount
 			message
+			orderNo
 		}
 	}
 `;

@@ -52,7 +52,6 @@ const PosListTable = (props: IProps) => {
 			key: "quantity",
 			width: "15%",
 			render: (_, record: CartProduct) => {
-				console.log("record", record);
 				return (
 					<>
 						<InputNumber
@@ -109,7 +108,7 @@ const PosListTable = (props: IProps) => {
 			},
 		},
 	];
-	console.log("cart", cart);
+
 	return (
 		<div className="full">
 			<Table

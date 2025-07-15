@@ -3,7 +3,15 @@ import { Item, Mutation } from "@/generated/graphql";
 import { DELETE_ITEM } from "@/graphql/inventory/items";
 import { DeleteOutlined } from "@ant-design/icons";
 import { useMutation } from "@apollo/client";
-import { Button, Input, Popconfirm, Space, Table, TableProps } from "antd";
+import {
+	Button,
+	Input,
+	Popconfirm,
+	Space,
+	Table,
+	TableProps,
+	Typography,
+} from "antd";
 import { MessageInstance } from "antd/es/message/interface";
 import { StyledDiv } from "../style";
 
@@ -18,12 +26,13 @@ interface IProps {
 
 const ItemListTable = (props: IProps) => {
 	const { data, loading, refetch, openModal, messageApi, setSearch } = props;
+	const warningItem = 20;
+	const lowItem = 10;
 
 	const [deleteItem, { loading: deleteLoading }] = useMutation<Mutation>(
 		DELETE_ITEM,
 		{
 			onCompleted: (data) => {
-				console.log("data", data);
 				if (data?.deleteItem?.success) {
 					messageApi.success("Item deleted successfully");
 					refetch();
@@ -61,7 +70,22 @@ const ItemListTable = (props: IProps) => {
 			dataIndex: "currentStock",
 			key: "currentStock",
 			width: "10%",
-			render: (currentStock: number) => currentStock.toFixed(2),
+			render: (currentStock: number) => {
+				return (
+					<Typography.Text
+						style={{
+							color:
+								currentStock <= lowItem
+									? "red"
+									: currentStock <= warningItem
+									? "orange"
+									: "",
+						}}
+					>
+						{currentStock.toFixed(2)}
+					</Typography.Text>
+				);
+			},
 		},
 		{
 			title: "Price (Per Unit)",

@@ -12,7 +12,6 @@ const StatisticCard: React.FC<StatisticCardProps> = ({
 	value,
 	percentage,
 }) => {
-	console.log("value", value);
 	return (
 		<Card variant="outlined" style={{ borderWidth: 1.5 }}>
 			<Flex justify="space-between">

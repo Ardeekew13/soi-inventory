@@ -2,6 +2,7 @@ import { Product } from "@/generated/graphql";
 import { CartProduct } from "@/utils/helper";
 import { PlusOutlined } from "@ant-design/icons";
 import {
+	Badge,
 	Button,
 	Card,
 	Col,
@@ -30,6 +31,9 @@ const ItemPosCard = (props: IProps) => {
 	const [currentPage, setCurrentPage] = useState(1);
 
 	const handleAddToCart = (record: Product) => {
+		if (record.availableUnits <= 0) {
+			return messageApi.error("Item is out of stock");
+		}
 		const existingItem = cart.find((item) => item.id === record.id);
 		if (existingItem) {
 			setCart((prevCart) =>
@@ -42,6 +46,12 @@ const ItemPosCard = (props: IProps) => {
 		} else {
 			setCart((prevCart) => [...prevCart, { ...record, quantity: 1 }]);
 		}
+	};
+
+	const getStockBadgeColor = (units: number) => {
+		if (units <= 5) return "red";
+		if (units <= 10) return "orange";
+		return "green";
 	};
 
 	if (loading) {
@@ -72,7 +82,20 @@ const ItemPosCard = (props: IProps) => {
 									<Tag color="blue" style={{ width: "fit-content" }}>
 										₱{item.price}
 									</Tag>
-									<div style={{ display: "flex", justifyContent: "flex-end" }}>
+
+									<div
+										style={{ display: "flex", justifyContent: "space-between" }}
+									>
+										<Badge
+											color={getStockBadgeColor(item?.availableUnits)}
+											text={
+												item?.availableUnits <= 0
+													? "Out of stock"
+													: item?.availableUnits <= 5
+													? `Only ${item?.availableUnits} left!`
+													: `${item?.availableUnits} in stock`
+											}
+										/>
 										<Button
 											type="primary"
 											shape="circle"

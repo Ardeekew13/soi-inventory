@@ -8,8 +8,8 @@ import { Query } from "@/generated/graphql";
 import { GET_PRODUCTS } from "@/graphql/inventory/products";
 import { useModal } from "@/hooks/useModal";
 import { CartProduct } from "@/utils/helper";
+import { ShoppingCartOutlined } from "@ant-design/icons";
 import { useQuery } from "@apollo/client";
-import ShoppingCartIcon from "@mui/icons-material/ShoppingCart";
 import {
 	Button,
 	Card,
@@ -74,7 +74,7 @@ const PointOfSale = () => {
 			style={{
 				padding: 20,
 				boxSizing: "border-box",
-				overflow: "hidden",
+				overflow: "auto",
 			}}
 		>
 			<Row gutter={8} style={{ height: "100%" }}>
@@ -158,7 +158,7 @@ const PointOfSale = () => {
 					type="primary"
 					style={{ marginTop: 16 }}
 					onClick={() => setCartOpen(true)}
-					icon={<ShoppingCartIcon />}
+					icon={<ShoppingCartOutlined />}
 				>
 					View Cart
 				</FloatButton>

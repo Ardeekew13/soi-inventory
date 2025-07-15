@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
 "use client";
 import CommonPageTitle from "@/component/common/CommonPageTitle";
 import PageLayout from "@/component/common/custom-antd/PageContainer";
@@ -7,8 +6,10 @@ import TransactionListTable from "@/component/transaction/transactionListTable";
 import { Query, Sale } from "@/generated/graphql";
 import { GET_SALES } from "@/graphql/inventory/transactions";
 import { useModal } from "@/hooks/useModal";
+import { exportToExcel } from "@/utils/export-report";
 import { useQuery } from "@apollo/client";
-import { message, Skeleton, Tabs } from "antd";
+import { Button, message, Skeleton, Tabs } from "antd";
+import dayjs from "dayjs";
 import { useMemo, useState } from "react";
 
 const Transactions = () => {
@@ -30,6 +31,20 @@ const Transactions = () => {
 		[data, loading, refetch, openModal, messageApi, setSearch]
 	);
 
+	const formattedData = data?.sales.map((sale) => {
+		const itemList = sale.saleItems
+			.map((i) => `${i.product.name} (x${i.quantity}, ${i.priceAtSale})`)
+			.join(", ");
+		return {
+			"Transaction Date": dayjs(sale.createdAt).format("YYYY-MM-DD HH:mm"),
+			"Order No.": sale.orderNo,
+			"Items Sold": itemList,
+			"Cost of Goods": `₱${sale.costOfGoods.toFixed(2)}`,
+			"Gross Profit": `₱${sale.grossProfit.toFixed(2)}`,
+			"Total Amount": `₱${sale.totalAmount.toFixed(2)}`,
+		};
+	});
+	console.log("formattedData", formattedData);
 	if (loading) {
 		return <Skeleton active />;
 	}
@@ -41,6 +56,14 @@ const Transactions = () => {
 					title="Transaction"
 					subTitle="Your Complete Transaction Record"
 				/>
+			}
+			extra={
+				<Button
+					type="primary"
+					onClick={() => exportToExcel(formattedData ?? [], "transactions")}
+				>
+					Export to xlsx
+				</Button>
 			}
 		>
 			<Tabs
