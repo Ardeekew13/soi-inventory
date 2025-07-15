@@ -244,7 +244,6 @@ const AddProductModal = (props: ProductModalProps) => {
 			),
 		},
 	];
-	console.log("ingredients", ingredients);
 
 	return (
 		<Modal
