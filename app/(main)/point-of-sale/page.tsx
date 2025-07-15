@@ -28,7 +28,7 @@ import { useMediaQuery } from "react-responsive";
 
 const PointOfSale = () => {
 	const [messageApi, contextHolder] = message.useMessage();
-	const { openModal, isModalOpen, closeModal, selectedRecord } = useModal();
+	const { isModalOpen, closeModal, selectedRecord } = useModal();
 	const {
 		openModal: ReceiptModal,
 		isModalOpen: receiptOpen,

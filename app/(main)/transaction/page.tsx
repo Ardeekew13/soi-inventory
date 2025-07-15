@@ -44,7 +44,7 @@ const Transactions = () => {
 			"Total Amount": `₱${sale.totalAmount.toFixed(2)}`,
 		};
 	});
-	console.log("formattedData", formattedData);
+
 	if (loading) {
 		return <Skeleton active />;
 	}

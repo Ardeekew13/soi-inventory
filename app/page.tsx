@@ -25,14 +25,20 @@ const LoginPage = () => {
 		},
 	});
 
-	const handleSubmit = async (values: any) => {
-		console.log("values", values);
+	const handleSubmit = async (values: {
+		username: string;
+		password: string;
+	}) => {
 		try {
 			await login({
 				variables: { username: values.username, password: values.password },
 			});
-		} catch (e: any) {
-			messageApi.error(e.message);
+		} catch (e: Error | unknown) {
+			if (e instanceof Error) {
+				messageApi.error(e.message);
+			} else {
+				messageApi.error("An unknown error occurred");
+			}
 		}
 	};
 
