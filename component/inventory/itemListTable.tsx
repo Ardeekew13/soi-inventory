@@ -22,10 +22,12 @@ interface IProps {
 	openModal: (record: Item) => void;
 	messageApi: MessageInstance;
 	setSearch: React.Dispatch<React.SetStateAction<string>>;
+	search: string;
 }
 
 const ItemListTable = (props: IProps) => {
-	const { data, loading, refetch, openModal, messageApi, setSearch } = props;
+	const { data, loading, refetch, openModal, messageApi, setSearch, search } =
+		props;
 	const warningItem = 20;
 	const lowItem = 10;
 
@@ -129,6 +131,7 @@ const ItemListTable = (props: IProps) => {
 				onSearch={setSearch}
 				enterButton
 				allowClear
+				defaultValue={search}
 			/>
 			<StyledDiv>
 				<Table

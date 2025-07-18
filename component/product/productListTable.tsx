@@ -15,10 +15,12 @@ interface IProps {
 	messageApi: MessageInstance;
 	openModal: (record: Product) => void;
 	setSearch: React.Dispatch<React.SetStateAction<string>>;
+	search: string;
 }
 
 const ProductListTable = (props: IProps) => {
-	const { data, loading, refetch, openModal, messageApi, setSearch } = props;
+	const { data, loading, refetch, openModal, messageApi, setSearch, search } =
+		props;
 
 	const [deleteProduct, { loading: deleteLoading }] = useMutation<Mutation>(
 		DELETE_PRODUCT,
@@ -94,6 +96,7 @@ const ProductListTable = (props: IProps) => {
 				onSearch={setSearch}
 				enterButton
 				allowClear
+				defaultValue={search}
 			/>
 			<StyledDiv>
 				<Table

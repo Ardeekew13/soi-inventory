@@ -48,7 +48,7 @@ const AddItemModal = (props: ItemModalProps) => {
 		try {
 			addItem({
 				variables: {
-					id: record?.id ?? "",
+					id: record?.id ?? null,
 					name: values.name,
 					unit: values.unit.toLowerCase(),
 					pricePerUnit: values.pricePerUnit,

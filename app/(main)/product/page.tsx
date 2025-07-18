@@ -3,17 +3,19 @@ import CommonPageTitle from "@/component/common/CommonPageTitle";
 import PageLayout from "@/component/common/custom-antd/PageContainer";
 import AddProductModal from "@/component/product/dialog/addProductDialog";
 import ProductListTable from "@/component/product/productListTable";
+import { useRefetchFlag } from "@/context/TriggerRefetchContext";
 import type { Product, Query } from "@/generated/graphql";
 import { GET_PRODUCTS } from "@/graphql/inventory/products";
 import { useModal } from "@/hooks/useModal";
 import { useQuery } from "@apollo/client";
-import { Button, message, Tabs } from "antd";
-import { useCallback, useMemo, useState } from "react";
+import { Button, message, Skeleton, Tabs } from "antd";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 const Product = () => {
 	const [messageApi, contextHolder] = message.useMessage();
 	const { openModal, isModalOpen, closeModal, selectedRecord } = useModal();
 	const [search, setSearch] = useState("");
+	const { triggerRefetch, setTriggerRefetch } = useRefetchFlag();
 
 	const { data, loading, refetch } = useQuery<Query>(GET_PRODUCTS, {
 		variables: {
@@ -31,9 +33,20 @@ const Product = () => {
 			openModal,
 			messageApi,
 			setSearch,
+			search,
 		}),
-		[data, loading, handleRefetch, openModal, messageApi, setSearch]
+		[data, loading, handleRefetch, openModal, messageApi, setSearch, search]
 	);
+	useEffect(() => {
+		if (triggerRefetch) {
+			refetch();
+			setTriggerRefetch(false);
+		}
+	});
+
+	if (loading) {
+		return <Skeleton active />;
+	}
 
 	return (
 		<PageLayout

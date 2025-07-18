@@ -13,7 +13,7 @@ export default function MainLayout({
 }) {
 	return (
 		<AuthGuard>
-			<NavbarLayout>{children}</NavbarLayout>;
+			<NavbarLayout>{children}</NavbarLayout>
 		</AuthGuard>
 	);
 }

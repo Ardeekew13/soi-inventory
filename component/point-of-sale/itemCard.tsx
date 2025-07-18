@@ -6,6 +6,7 @@ import {
 	Button,
 	Card,
 	Col,
+	Input,
 	Pagination,
 	Row,
 	Skeleton,
@@ -22,12 +23,23 @@ interface IProps {
 	messageApi: MessageInstance;
 	setCart: React.Dispatch<React.SetStateAction<CartProduct[]>>;
 	cart: CartProduct[];
+	setSearch: React.Dispatch<React.SetStateAction<string>>;
+	search: string;
 }
 
 const PAGE_SIZE = 16;
 
 const ItemPosCard = (props: IProps) => {
-	const { data, loading, refetch, messageApi, setCart, cart } = props;
+	const {
+		data,
+		loading,
+		refetch,
+		messageApi,
+		setCart,
+		cart,
+		search,
+		setSearch,
+	} = props;
 	const [currentPage, setCurrentPage] = useState(1);
 
 	const handleAddToCart = (record: Product) => {
@@ -65,6 +77,12 @@ const ItemPosCard = (props: IProps) => {
 		<div style={{ height: "100%", display: "flex", flexDirection: "column" }}>
 			<div style={{ flex: 1 }}>
 				<Row gutter={[16, 16]}>
+					<Input.Search
+						allowClear
+						defaultValue={search}
+						onSearch={(value) => setSearch(value)}
+						style={{ paddingRight: 8, paddingLeft: 8 }}
+					/>
 					{paginatedData.map((item) => (
 						<Col lg={6} md={8} sm={24} xs={24} key={item.id}>
 							<Card style={{ borderColor: "#1e3a8a" }}>

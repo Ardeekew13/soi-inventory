@@ -1,4 +1,5 @@
 "use client";
+import { GlobalRefetchProvider } from "@/context/TriggerRefetchContext";
 import { client } from "@/lib/apollo-client";
 import "@ant-design/v5-patch-for-react-19";
 import { ApolloProvider } from "@apollo/client";
@@ -27,7 +28,7 @@ export default function RootLayout({
 							},
 						}}
 					>
-						{children}
+						<GlobalRefetchProvider>{children}</GlobalRefetchProvider>
 					</ConfigProvider>
 				</ApolloProvider>
 			</body>

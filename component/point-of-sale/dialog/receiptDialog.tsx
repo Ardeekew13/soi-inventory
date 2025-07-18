@@ -1,3 +1,4 @@
+import { useRefetchFlag } from "@/context/TriggerRefetchContext";
 import { RECORD_SALE } from "@/graphql/inventory/point-of-sale";
 import { CartProduct } from "@/utils/helper";
 import { generateReceiptHTML } from "@/utils/receiptPage";
@@ -17,7 +18,7 @@ interface IProps {
 
 const ReceiptDialog = (props: IProps) => {
 	const { open, onClose, cart, totalAmount, messageApi, setCart } = props;
-
+	const { setTriggerRefetch } = useRefetchFlag();
 	const [recordSale, { loading: saleLoading }] = useMutation(RECORD_SALE);
 
 	const handlePrint = async () => {
@@ -53,6 +54,7 @@ const ReceiptDialog = (props: IProps) => {
 			}
 			onClose();
 			setCart([]);
+			setTriggerRefetch(true);
 		} catch (error: any) {
 			messageApi.error(error.message || "Failed to place order.");
 		}

@@ -20,10 +20,9 @@ import {
 	message,
 	Row,
 	Skeleton,
-	Tabs,
 	Typography,
 } from "antd";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useMediaQuery } from "react-responsive";
 
 const PointOfSale = () => {
@@ -36,20 +35,29 @@ const PointOfSale = () => {
 		selectedRecord: receipt,
 	} = useModal();
 	const [cart, setCart] = useState<CartProduct[]>([]);
-
-	const { data, loading, refetch } = useQuery<Query>(GET_PRODUCTS);
-
 	const [cartOpen, setCartOpen] = useState(false);
 	const isMobile = useMediaQuery({ query: "(max-width: 991px)" });
+	const [search, setSearch] = useState("");
 
-	const tableProps = {
-		data: data?.products ?? [],
-		loading,
-		refetch,
-		messageApi,
-		cart,
-		setCart,
-	};
+	const { data, loading, refetch } = useQuery<Query>(GET_PRODUCTS, {
+		variables: {
+			search,
+		},
+	});
+
+	const tableProps = useMemo(
+		() => ({
+			data: data?.products ?? [],
+			loading,
+			refetch,
+			messageApi,
+			cart,
+			setCart,
+			search,
+			setSearch,
+		}),
+		[data, loading, refetch, messageApi, cart, setCart, search, setSearch]
+	);
 
 	const posTableProps = {
 		cart,
@@ -80,21 +88,9 @@ const PointOfSale = () => {
 			<Row gutter={8} style={{ height: "100%" }}>
 				<Col lg={15} sm={24} style={{ height: "85vh" }}>
 					<Card style={{ height: "100%" }}>
-						<Tabs
-							defaultActiveKey="1"
-							style={{ height: "100%" }}
-							items={[
-								{
-									label: `Items`,
-									key: "1",
-									children: (
-										<div style={{ height: "100%" }}>
-											<ItemPosCard {...tableProps} />
-										</div>
-									),
-								},
-							]}
-						/>
+						<div style={{ height: "100%" }}>
+							<ItemPosCard {...tableProps} />
+						</div>
 					</Card>
 				</Col>
 				{isMobile ? (

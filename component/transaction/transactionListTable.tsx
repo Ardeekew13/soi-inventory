@@ -16,10 +16,12 @@ interface IProps {
 	messageApi: MessageInstance;
 	openModal: (record: Sale) => void;
 	setSearch: React.Dispatch<React.SetStateAction<string>>;
+	search: string;
 }
 
 const TransactionListTable = (props: IProps) => {
-	const { data, loading, refetch, openModal, messageApi, setSearch } = props;
+	const { data, loading, refetch, openModal, messageApi, setSearch, search } =
+		props;
 	const {
 		isModalOpen: isModalVoidOpen,
 		openModal: openModalVoid,
@@ -93,7 +95,7 @@ const TransactionListTable = (props: IProps) => {
 			<Input.Search
 				placeholder="Search"
 				onSearch={setSearch}
-				enterButton
+				defaultValue={search}
 				allowClear
 			/>
 			<StyledDiv>

@@ -3,6 +3,7 @@ import CommonPageTitle from "@/component/common/CommonPageTitle";
 import PageLayout from "@/component/common/custom-antd/PageContainer";
 import ViewTransactionModal from "@/component/transaction/dialog/viewTransactionModal";
 import TransactionListTable from "@/component/transaction/transactionListTable";
+import { useRefetchFlag } from "@/context/TriggerRefetchContext";
 import { Query, Sale } from "@/generated/graphql";
 import { GET_SALES } from "@/graphql/inventory/transactions";
 import { useModal } from "@/hooks/useModal";
@@ -10,14 +11,19 @@ import { exportToExcel } from "@/utils/export-report";
 import { useQuery } from "@apollo/client";
 import { Button, message, Skeleton, Tabs } from "antd";
 import dayjs from "dayjs";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 const Transactions = () => {
 	const [messageApi, contextHolder] = message.useMessage();
 	const { openModal, isModalOpen, closeModal, selectedRecord } = useModal();
 	const [search, setSearch] = useState("");
+	const { triggerRefetch, setTriggerRefetch } = useRefetchFlag();
 
-	const { data, loading, refetch } = useQuery<Query>(GET_SALES);
+	const { data, loading, refetch } = useQuery<Query>(GET_SALES, {
+		variables: {
+			search,
+		},
+	});
 
 	const tableProps = useMemo(
 		() => ({
@@ -27,8 +33,9 @@ const Transactions = () => {
 			openModal,
 			messageApi,
 			setSearch,
+			search,
 		}),
-		[data, loading, refetch, openModal, messageApi, setSearch]
+		[data, loading, refetch, openModal, messageApi, setSearch, search]
 	);
 
 	const formattedData = data?.sales.map((sale) => {
@@ -43,6 +50,13 @@ const Transactions = () => {
 			"Gross Profit": `₱${sale.grossProfit.toFixed(2)}`,
 			"Total Amount": `₱${sale.totalAmount.toFixed(2)}`,
 		};
+	});
+
+	useEffect(() => {
+		if (triggerRefetch) {
+			refetch();
+			setTriggerRefetch(false);
+		}
 	});
 
 	if (loading) {

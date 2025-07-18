@@ -1,8 +1,8 @@
 import { gql } from "@apollo/client";
 
 export const GET_SALES = gql`
-	query Sales {
-		sales {
+	query Sales($search: String) {
+		sales(search: $search) {
 			createdAt
 			id
 			status
