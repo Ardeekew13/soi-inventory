@@ -1,8 +1,10 @@
 import { ApolloClient, InMemoryCache, createHttpLink } from "@apollo/client";
 
 const httpLink = createHttpLink({
-	// uri: "https://soi-backend.onrender.com/graphql",
-	uri: "http://localhost:4000/graphql",
+	uri:
+		process.env.NODE_ENV === "production"
+			? process.env.NEXT_PUBLIC_API_URL
+			: process.env.NEXT_DEV_URL,
 	credentials: "include",
 });
 

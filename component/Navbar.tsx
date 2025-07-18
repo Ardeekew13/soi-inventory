@@ -90,64 +90,61 @@ export default function NavbarLayout({
 			{isMobile ? (
 				<Sider
 					theme="light"
-					collapsed={collapsed}
 					collapsible
-					onCollapse={() => setCollapsed(false)}
+					collapsed={collapsed}
+					onCollapse={(value) => setCollapsed(value)}
 					collapsedWidth={0}
-					width={collapsed ? 0 : "100%"}
+					width={250}
+					breakpoint="md"
 					style={{
-						overflow: "hidden",
+						overflow: "auto",
 						height: "100vh",
 						position: "fixed",
 						left: 0,
 						top: 0,
 						bottom: 0,
 						zIndex: 1000,
+						boxShadow: "2px 0 8px rgba(0, 0, 0, 0.1)",
+						background: "#fff",
 					}}
 				>
+					{/* Logo and Close */}
 					<div
 						style={{
-							fontWeight: "bold",
-							marginRight: 40,
-							flex: 1,
-							textAlign: "center",
-							marginTop: 20,
-							position: "relative",
+							padding: 16,
+							display: "flex",
+							justifyContent: "space-between",
+							alignItems: "center",
 						}}
 					>
-						<div
-							style={{
-								fontWeight: "bold",
-								marginRight: 40,
-								display: "flex",
-								justifyContent: "center",
-								alignItems: "top",
-							}}
-						>
-							<Image src={logo} alt="logo" height={70} />
-							<Typography.Title level={3}>Soi Suites</Typography.Title>
+						<div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+							<Image src={logo} alt="logo" height={40} />
+							<Typography.Title level={4} style={{ margin: 0 }}>
+								Soi Suites
+							</Typography.Title>
 						</div>
 						<CloseOutlined
 							onClick={() => setCollapsed(true)}
-							style={{ position: "absolute", top: 4, right: 0, fontSize: 24 }}
+							style={{ fontSize: 20, cursor: "pointer", color: "#999" }}
 						/>
 					</div>
+
+					{/* Menu */}
 					<Menu
-						style={{
-							fontSize: 16,
-						}}
-						mode="vertical"
+						mode="inline"
+						style={{ fontSize: 16, borderRight: 0 }}
 						items={items}
 						onClick={onMenuClick}
 					/>
+
+					{/* Logout Button */}
 					<div
 						style={{
 							position: "absolute",
-							bottom: 20,
+							bottom: 16,
 							left: 0,
 							right: 0,
 							textAlign: "center",
-							margin: "auto",
 						}}
 					>
 						<Flex
@@ -160,8 +157,8 @@ export default function NavbarLayout({
 							}}
 							onClick={handleLogout}
 						>
-							<LogoutOutlined style={{ fontSize: 24 }} />
-							<Typography.Title level={5}>Logout</Typography.Title>
+							<LogoutOutlined style={{ fontSize: 20 }} />
+							<Typography.Text strong>Logout</Typography.Text>
 						</Flex>
 					</div>
 				</Sider>
