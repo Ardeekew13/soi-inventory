@@ -1,7 +1,8 @@
-import { Item, Mutation } from "@/generated/graphql";
-import { ADD_ITEM } from "@/graphql/inventory/items";
+import { useRefetchFlag } from "@/context/TriggerRefetchContext";
+
+import { supabase } from "@/lib/supabase-client";
+import { Item } from "@/lib/supabase.types";
 import { requiredField } from "@/utils/helper";
-import { useMutation } from "@apollo/client";
 import {
 	Button,
 	Col,
@@ -14,6 +15,7 @@ import {
 	Typography,
 } from "antd";
 import { MessageInstance } from "antd/es/message/interface";
+import { useState } from "react";
 
 interface ItemModalProps {
 	open: boolean;
@@ -26,17 +28,8 @@ interface ItemModalProps {
 const AddItemModal = (props: ItemModalProps) => {
 	const { open, onClose, record, refetch, messageApi } = props;
 	const [form] = Form.useForm();
-
-	const [addItem, { loading }] = useMutation<Mutation>(ADD_ITEM, {
-		onCompleted: (data) => {
-			messageApi.success(
-				`${record?.id ? "Item updated" : "Item added"} successfully`
-			);
-			refetch();
-			form.resetFields();
-			onClose();
-		},
-	});
+	const { setTriggerRefetch } = useRefetchFlag();
+	const [loading, setLoading] = useState(false);
 
 	const handleCloseModal = () => {
 		Modal.destroyAll();
@@ -44,18 +37,48 @@ const AddItemModal = (props: ItemModalProps) => {
 		onClose();
 	};
 
-	const handleSubmit = (values: Item) => {
+	const handleSubmit = async (values: any) => {
+		setLoading(true);
 		try {
-			addItem({
-				variables: {
-					id: record?.id ?? null,
-					name: values.name,
-					unit: values.unit.toLowerCase(),
-					pricePerUnit: values.pricePerUnit,
-					currentStock: values.currentStock,
-				},
-			});
-		} catch (e: Error | any) {
+			let error;
+			if (record?.id) {
+				// Update existing item
+				const { error: updateError } = await supabase
+					.from("items")
+					.update({
+						name: values.name,
+						unit: values.unit.toLowerCase(),
+						price_per_unit: values.pricePerUnit,
+						current_stock: values.currentStock,
+					})
+					.eq("id", record.id);
+				error = updateError;
+			} else {
+				// Insert new item
+				const { error: insertError } = await supabase.from("items").insert([
+					{
+						name: values.name,
+						unit: values.unit.toLowerCase(),
+						price_per_unit: values.pricePerUnit,
+						current_stock: values.currentStock,
+					},
+				]);
+				error = insertError;
+			}
+
+			if (error) {
+				messageApi.error("Failed: " + error.message);
+				return;
+			}
+
+			messageApi.success(
+				`${record?.id ? "Item updated" : "Item added"} successfully`
+			);
+			refetch();
+			form.resetFields();
+			onClose();
+			setTriggerRefetch(true);
+		} catch (e: any) {
 			messageApi.error(e.message);
 		}
 	};
@@ -89,8 +112,8 @@ const AddItemModal = (props: ItemModalProps) => {
 				initialValues={{
 					name: record?.name ?? "",
 					unit: record?.unit ?? "",
-					pricePerUnit: record?.pricePerUnit ?? "",
-					currentStock: record?.currentStock ?? "",
+					pricePerUnit: record?.price_per_unit ?? "",
+					currentStock: record?.current_stock ?? "",
 				}}
 			>
 				<Row gutter={4}>

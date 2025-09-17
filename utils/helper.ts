@@ -1,5 +1,3 @@
-import { Product } from "@/generated/graphql";
-
 export const responsiveColumn24 = {
 	xs: 24,
 	sm: 24,
@@ -63,7 +61,37 @@ export const requiredField = [
 	},
 ];
 
-export interface CartProduct extends Product {
-	quantity: number;
-	quantityUsed?: number;
-}
+export const formatPeso = (
+	value: number | string | null | undefined
+): string => {
+	if (value == null || value === "") return "₱ 0";
+
+	const num = typeof value === "string" ? parseFloat(value) : value;
+
+	if (isNaN(num)) return "₱ 0";
+
+	return `₱ ${num.toLocaleString("en-PH", {
+		minimumFractionDigits: 2,
+		maximumFractionDigits: 2,
+	})}`;
+};
+
+// export const saleToCart = (sale: Sale): CartItem[] =>
+// 	(sale.saleItems ?? []).map((si) => {
+// 		const p = si.product;
+// 		return {
+// 			...p,
+// 			id: si.id,
+// 			productId: p.id,
+// 			name: p.name,
+// 			price: si.priceAtSale ?? p.price ?? 0,
+// 			quantity: si.quantity ?? 1,
+// 			printed: !!si.printed,
+// 			fromDb: true,
+// 			saleItemId: si.id,
+// 			ingredientsUsed: p.ingredientsUsed ?? [],
+// 			tempKey: si.id ?? uuidv4(),
+// 			tableNo: sale.tableNo,
+// 			orderNo: sale.orderNo,
+// 		} as CartItem;
+// 	});

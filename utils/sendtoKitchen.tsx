@@ -1,15 +1,15 @@
-import { CartItem } from "./helper";
+import { Cart } from "./carts";
 
-export const generateReceiptHTML = (
-	cart: CartItem[],
-	totalAmount: number,
-	receiptDate: string,
-	orderNumber: string
+export const generateKitchenDocketHTML = (
+	cart: Cart,
+	tableNo: number | null,
+	orderNumber: string,
+	printedAt: string
 ) => {
 	return `
     <html>
       <head>
-        <title>Official Receipt</title>
+        <title>Kitchen Docket</title>
         <style>
           body {
             font-family: 'Segoe UI', sans-serif;
@@ -17,7 +17,7 @@ export const generateReceiptHTML = (
             background: #fff;
             max-width: 500px;
             margin: auto;
-            color: #333;
+            color: #000;
           }
           h1 {
             text-align: center;
@@ -26,9 +26,9 @@ export const generateReceiptHTML = (
           }
           .subtitle {
             text-align: center;
-            font-size: 14px;
-            color: #666;
-            margin-bottom: 24px;
+            font-size: 16px;
+            font-weight: bold;
+            margin-bottom: 20px;
           }
           .meta {
             margin-bottom: 20px;
@@ -40,39 +40,33 @@ export const generateReceiptHTML = (
           table {
             width: 100%;
             border-collapse: collapse;
-            margin-bottom: 16px;
+            margin-bottom: 20px;
           }
           th, td {
             text-align: left;
-            padding: 8px 0;
+            padding: 10px 0;
+            font-size: 16px;
           }
           th {
-            border-bottom: 1px solid #ccc;
+            border-bottom: 1px solid #000;
             font-weight: bold;
-          }
-          .summary {
-            text-align: right;
-            font-weight: bold;
-            font-size: 16px;
-            border-top: 1px solid #ccc;
-            padding-top: 10px;
           }
           .footer {
             text-align: center;
             margin-top: 30px;
             font-size: 12px;
-            color: #666;
+            color: #444;
           }
         </style>
       </head>
       <body>
         <h1>Soi Suites</h1>
-        <div class="subtitle">Official Receipt</div>
+        <div class="subtitle">Kitchen Order</div>
 
         <div class="meta">
-          <span><strong>Date:</strong> ${receiptDate}</span>
-          <span><strong>Transaction Number:</strong> ${orderNumber}</span>
-
+          <span><strong>Table No:</strong> ${tableNo ?? "N/A"}</span>
+          <span><strong>Order #:</strong> ${orderNumber}</span>
+          <span><strong>Printed At:</strong> ${printedAt}</span>
         </div>
 
         <table>
@@ -80,36 +74,23 @@ export const generateReceiptHTML = (
             <tr>
               <th>Item</th>
               <th style="text-align: right;">Qty</th>
-              <th style="text-align: right;">Price</th>
-              <th style="text-align: right;">Total</th>
             </tr>
           </thead>
           <tbody>
-            ${cart
+            ${cart?.saleItems
 							.map(
 								(item) => `
               <tr>
                 <td>${item.name}</td>
                 <td style="text-align: right;">${item.quantity}</td>
-                <td style="text-align: right;">₱${item.price.toLocaleString(
-									"en-PH"
-								)}</td>
-                <td style="text-align: right;">₱${(
-									item.price * item.quantity
-								).toLocaleString("en-PH")}</td>
               </tr>`
 							)
 							.join("")}
           </tbody>
         </table>
 
-        <div class="summary">
-          Order Total: ₱${totalAmount.toLocaleString("en-PH")}
-        </div>
-
         <div class="footer">
-          Thank you for your purchase!<br/>
-          This serves as your official receipt.
+          Please prepare immediately.
         </div>
       </body>
     </html>

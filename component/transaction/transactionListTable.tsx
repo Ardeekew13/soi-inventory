@@ -1,8 +1,8 @@
 "use client";
-import { Sale } from "@/generated/graphql";
 import { useModal } from "@/hooks/useModal";
+import { Sale } from "@/lib/supabase.types";
 import { DeleteOutlined } from "@ant-design/icons";
-import { Button, Input, Space, Table } from "antd";
+import { Button, Input, Space, Table, Tag } from "antd";
 import { MessageInstance } from "antd/es/message/interface";
 import { TableProps } from "antd/lib";
 import dayjs from "dayjs";
@@ -31,9 +31,9 @@ const TransactionListTable = (props: IProps) => {
 	const columns: TableProps<Sale>["columns"] = [
 		{
 			title: "Transaction Number",
-			dataIndex: "orderNo",
-			key: "orderNo",
-			width: "10%",
+			dataIndex: "order_no",
+			key: "order_no",
+			width: "15%",
 		},
 		{
 			title: "Transaction Date",
@@ -45,23 +45,39 @@ const TransactionListTable = (props: IProps) => {
 		},
 		{
 			title: "Cost Of Goods",
-			dataIndex: "costOfGoods",
-			key: "costOfGoods",
+			dataIndex: "cost_of_goods",
+			key: "cost_of_goods",
+			align: "right",
 			width: "15%",
 			render: (value: number) => value?.toFixed(2),
 		},
 		{
 			title: "Total Amount",
-			dataIndex: "totalAmount",
-			key: "totalAmount",
+			dataIndex: "total_amount",
+			key: "total_amount",
+			align: "right",
 			render: (value: number) => value?.toFixed(2),
 		},
 		{
 			title: "Gross Profit",
-			dataIndex: "grossProfit",
-			key: "grossProfit",
+			dataIndex: "gross_profit",
+			key: "gross_profit",
+			align: "right",
 			width: "15%",
 			render: (value: number) => value?.toFixed(2),
+		},
+		{
+			title: "Status",
+			dataIndex: "status",
+			key: "status",
+			width: "10%",
+			align: "center",
+			render: (value: string) => {
+				if (value === "VOID") {
+					return <Tag color="red">{value}</Tag>;
+				} else if (value === "PAID") return <Tag color="green">{value}</Tag>;
+				else if (value === "PARKED") return <Tag color="blue">{value}</Tag>;
+			},
 		},
 
 		{

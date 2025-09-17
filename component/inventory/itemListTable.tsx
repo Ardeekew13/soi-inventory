@@ -1,8 +1,8 @@
 "use client";
-import { Item, Mutation } from "@/generated/graphql";
-import { DELETE_ITEM } from "@/graphql/inventory/items";
+import { supabase } from "@/lib/supabase-client";
+import { Item } from "@/lib/supabase.types";
+import { formatPeso } from "@/utils/helper";
 import { DeleteOutlined } from "@ant-design/icons";
-import { useMutation } from "@apollo/client";
 import {
 	Button,
 	Input,
@@ -31,26 +31,15 @@ const ItemListTable = (props: IProps) => {
 	const warningItem = 20;
 	const lowItem = 10;
 
-	const [deleteItem, { loading: deleteLoading }] = useMutation<Mutation>(
-		DELETE_ITEM,
-		{
-			onCompleted: (data) => {
-				if (data?.deleteItem?.success) {
-					messageApi.success("Item deleted successfully");
-					refetch();
-				} else {
-					messageApi.error(data?.deleteItem?.message);
-				}
-			},
-		}
-	);
+	const handleDelete = async (id: string) => {
+		const { error } = await supabase.from("items").delete().eq("id", id);
 
-	const handleDelete = (id: string) => {
-		deleteItem({
-			variables: {
-				id,
-			},
-		});
+		if (error) {
+			messageApi.error("Failed to delete item: " + error.message);
+		} else {
+			messageApi.success("Item deleted successfully");
+			refetch();
+		}
 	};
 
 	const columns: TableProps<Item>["columns"] = [
@@ -69,33 +58,36 @@ const ItemListTable = (props: IProps) => {
 		},
 		{
 			title: "Current Stock",
-			dataIndex: "currentStock",
-			key: "currentStock",
+			dataIndex: "current_stock",
+			key: "current_stock",
 			width: "10%",
-			render: (currentStock: number) => {
+			align: "right",
+			render: (current_stock: number) => {
 				return (
 					<Typography.Text
 						style={{
 							color:
-								currentStock <= lowItem
+								current_stock <= lowItem
 									? "red"
-									: currentStock <= warningItem
+									: current_stock <= warningItem
 									? "orange"
 									: "",
 						}}
 					>
-						{currentStock.toFixed(2)}
+						{formatPeso(current_stock)}
 					</Typography.Text>
 				);
 			},
 		},
 		{
 			title: "Price (Per Unit)",
-			dataIndex: "pricePerUnit",
-			key: "pricePerUnit",
+			dataIndex: "price_per_unit",
+			key: "price_per_unit",
 			align: "right",
 			width: "15%",
-			render: (pricePerUnit: number) => `₱${pricePerUnit.toFixed(2)}`,
+			render: (price_per_unit: number) => {
+				return formatPeso(price_per_unit);
+			},
 		},
 		{
 			title: "Actions",
@@ -137,7 +129,7 @@ const ItemListTable = (props: IProps) => {
 				<Table
 					rowKey={(record: Item) => record.id.toString()}
 					columns={columns}
-					loading={loading || deleteLoading}
+					loading={loading}
 					dataSource={data ?? ([] as Item[])}
 					size="small"
 					scroll={{ x: 800 }}

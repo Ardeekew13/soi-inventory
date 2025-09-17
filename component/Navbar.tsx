@@ -1,10 +1,9 @@
 "use client";
-import { Mutation } from "@/generated/graphql";
-import { LOGOUT_MUTATION } from "@/graphql/login/login";
+import { supabase } from "@/lib/supabase-client";
 import logo from "@/public/soi-logo.png";
 import { CloseOutlined, LogoutOutlined } from "@ant-design/icons";
-import { useMutation } from "@apollo/client";
 import { MenuOpenOutlined } from "@mui/icons-material";
+import AccountBalanceWalletOutlinedIcon from "@mui/icons-material/AccountBalanceWalletOutlined";
 import GridViewOutlinedIcon from "@mui/icons-material/GridViewOutlined";
 import Inventory2OutlinedIcon from "@mui/icons-material/Inventory2Outlined";
 import ProductionQuantityLimitsOutlinedIcon from "@mui/icons-material/ProductionQuantityLimitsOutlined";
@@ -12,39 +11,11 @@ import ReceiptLongOutlinedIcon from "@mui/icons-material/ReceiptLongOutlined";
 import ShoppingBagOutlinedIcon from "@mui/icons-material/ShoppingBagOutlined";
 import { Flex, Layout, Menu, Typography } from "antd";
 import Image from "next/image";
-import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { usePathname, useRouter } from "next/navigation";
+import { useEffect, useMemo, useState } from "react";
 import { useMediaQuery } from "react-responsive";
 
 const { Header, Content, Sider } = Layout;
-
-const items = [
-	{
-		label: "Dashboard",
-		key: "/dashboard",
-		icon: <GridViewOutlinedIcon />,
-	},
-	{
-		label: "Inventory",
-		key: "/inventory",
-		icon: <Inventory2OutlinedIcon />,
-	},
-	{
-		label: "Product",
-		key: "/product",
-		icon: <ProductionQuantityLimitsOutlinedIcon />,
-	},
-	{
-		label: "Point Of Sale",
-		key: "/point-of-sale",
-		icon: <ShoppingBagOutlinedIcon />,
-	},
-	{
-		label: "Transaction",
-		key: "/transaction",
-		icon: <ReceiptLongOutlinedIcon />,
-	},
-];
 
 export default function NavbarLayout({
 	children,
@@ -54,12 +25,65 @@ export default function NavbarLayout({
 	const [selectedKeys, setSelectedKeys] = useState<string[]>(["/"]);
 	const router = useRouter();
 	const isMobile = useMediaQuery({ query: "(max-width: 768px)" });
+	const mdSize = useMediaQuery({ query: "(max-width:  992px)" });
 	const [collapsed, setCollapsed] = useState(false);
 	const [hydrated, setHydrated] = useState(false);
-	const [logout, { loading }] = useMutation<Mutation>(LOGOUT_MUTATION);
+
+	const role =
+		typeof window !== "undefined" ? localStorage.getItem("role") ?? "" : "";
+	const pathname = usePathname();
+
+	const items = useMemo(() => {
+		const role =
+			typeof window !== "undefined" ? localStorage.getItem("role") ?? "" : "";
+		const baseItems: any[] = [];
+
+		if (role === "ADMIN") {
+			baseItems.push(
+				{
+					label: "Dashboard",
+					key: "/dashboard",
+					icon: <GridViewOutlinedIcon />,
+				},
+				{
+					label: "Inventory",
+					key: "/inventory",
+					icon: <Inventory2OutlinedIcon />,
+				},
+				{
+					label: "Product",
+					key: "/product",
+					icon: <ProductionQuantityLimitsOutlinedIcon />,
+				}
+			);
+		}
+
+		if (role === "ADMIN" || role === "CASHIER") {
+			baseItems.push(
+				{
+					label: "Point Of Sale",
+					key: "/point-of-sale",
+					icon: <ShoppingBagOutlinedIcon />,
+				},
+				{
+					label: "Transaction",
+					key: "/transaction",
+					icon: <ReceiptLongOutlinedIcon />,
+				},
+				{
+					label: "Cash Drawer",
+					key: "/cash-drawer",
+					icon: <AccountBalanceWalletOutlinedIcon />,
+				}
+			);
+		}
+
+		return baseItems;
+	}, []);
 
 	const handleLogout = async () => {
-		await logout();
+		await supabase.auth.signOut();
+		localStorage.clear();
 		router.push("/");
 	};
 
@@ -71,20 +95,19 @@ export default function NavbarLayout({
 	};
 
 	useEffect(() => {
-		const stored = localStorage.getItem("selectedKeys");
-		if (stored) {
-			setSelectedKeys(JSON.parse(stored));
-		} else {
-			setSelectedKeys([window.location.pathname]);
+		const path = Array.isArray(pathname) ? pathname[0] : pathname;
+		if (path) {
+			setSelectedKeys([path]);
+			localStorage.setItem("selectedKeys", JSON.stringify([path]));
 		}
-		return () => {
-			localStorage.removeItem("selectedKeys");
-		};
-	}, []);
+	}, [pathname]);
 
 	useEffect(() => {
 		setHydrated(true);
 	}, []);
+
+	if (!hydrated) return null;
+
 	return (
 		<Layout style={{ backgroundColor: "#FFFFF", minHeight: "100vh" }}>
 			{isMobile ? (
@@ -177,7 +200,7 @@ export default function NavbarLayout({
 							marginRight: 40,
 						}}
 					>
-						<Image src={logo} alt="logo" height={30} />
+						{mdSize && <Image src={logo} alt="logo" height={40} />}
 						Soi Suites
 					</div>
 					<Menu
@@ -188,10 +211,16 @@ export default function NavbarLayout({
 						items={items}
 						onClick={onMenuClick}
 					/>
-
-					<Typography.Text onClick={handleLogout} style={{ cursor: "pointer" }}>
-						Logout
-					</Typography.Text>
+					{mdSize ? (
+						<LogoutOutlined onClick={handleLogout} />
+					) : (
+						<Typography.Text
+							onClick={handleLogout}
+							style={{ cursor: "pointer" }}
+						>
+							Logout
+						</Typography.Text>
+					)}
 				</Header>
 			)}
 			<Content

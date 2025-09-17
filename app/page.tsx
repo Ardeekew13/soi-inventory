@@ -1,8 +1,6 @@
 "use client";
-import { Mutation } from "@/generated/graphql";
-import { LOGIN_MUTATION } from "@/graphql/login/login";
+import { supabase } from "@/lib/supabase-client";
 import logo from "@/public/soi-logo.png";
-import { useMutation } from "@apollo/client";
 import { Button, Col, Form, Input, message, Row, Typography } from "antd";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
@@ -10,29 +8,40 @@ import { useRouter } from "next/navigation";
 const LoginPage = () => {
 	const [form] = Form.useForm();
 	const [messageApi, contextHolder] = message.useMessage();
+
 	const router = useRouter();
-	const [login, { loading }] = useMutation<Mutation>(LOGIN_MUTATION, {
-		onCompleted: (data) => {
-			if (data?.login?.success) {
-				messageApi.success(data?.login?.message);
+
+	const handleSubmit = async (values: { email: string; password: string }) => {
+		try {
+			const { data, error } = await supabase.auth.signInWithPassword({
+				email: values.email,
+				password: values.password,
+			});
+			if (error) throw error;
+			console.log("data", data);
+
+			const { data: result, error: profileError } = await supabase.rpc(
+				"get_user_profile"
+			);
+			if (profileError) throw profileError;
+
+			if (!result?.success) {
+				messageApi.error(result.message || "Failed to load profile");
+				return;
+			}
+
+			const profile = result.profile;
+
+			localStorage.setItem("role", profile?.role ?? "");
+			localStorage.setItem("userId", profile?.id ?? "");
+
+			messageApi.success(result.message);
+
+			if (profile?.role?.toUpperCase() === "ADMIN") {
 				router.push("/dashboard");
 			} else {
-				messageApi.error(data?.login?.message);
+				router.push("/point-of-sale");
 			}
-		},
-		onError: (error) => {
-			messageApi.error(error.message);
-		},
-	});
-
-	const handleSubmit = async (values: {
-		username: string;
-		password: string;
-	}) => {
-		try {
-			await login({
-				variables: { username: values.username, password: values.password },
-			});
 		} catch (e: Error | unknown) {
 			if (e instanceof Error) {
 				messageApi.error(e.message);
@@ -69,12 +78,12 @@ const LoginPage = () => {
 
 						<Form.Item
 							label="Username"
-							name="username"
+							name="email"
 							rules={[
 								{ required: true, message: "Please input your username!" },
 							]}
 						>
-							<Input placeholder="Enter your username" />
+							<Input type="email" placeholder="Enter your username" />
 						</Form.Item>
 
 						<Form.Item
@@ -93,7 +102,7 @@ const LoginPage = () => {
 								type="primary"
 								form="login"
 								htmlType="submit"
-								loading={loading}
+								// loading={loading}
 							>
 								Login
 							</Button>

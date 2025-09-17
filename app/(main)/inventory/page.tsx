@@ -4,10 +4,8 @@ import PageLayout from "@/component/common/custom-antd/PageContainer";
 import AddItemModal from "@/component/inventory/dialog/addItemDialog";
 import ItemListTable from "@/component/inventory/itemListTable";
 import { useRefetchFlag } from "@/context/TriggerRefetchContext";
-import { Item, Query } from "@/generated/graphql";
-import { GET_ITEMS } from "@/graphql/inventory/items";
 import { useModal } from "@/hooks/useModal";
-import { useQuery } from "@apollo/client";
+import { supabase } from "@/lib/supabase-client";
 import { Button, message, Skeleton, Tabs } from "antd";
 import { useEffect, useMemo, useState } from "react";
 
@@ -16,32 +14,67 @@ const Inventory = () => {
 	const { openModal, isModalOpen, closeModal, selectedRecord } = useModal();
 	const [search, setSearch] = useState("");
 	const { triggerRefetch, setTriggerRefetch } = useRefetchFlag();
+	const [loading, setLoading] = useState<boolean>(true);
+	const [data, setData] = useState<any[]>([]);
 
-	const { data, loading, refetch } = useQuery<Query>(GET_ITEMS, {
-		variables: {
-			search,
-		},
-	});
+	const fetchItems = async () => {
+		setLoading(true);
+
+		let query = supabase
+			.from("items")
+			.select("*")
+			.order("created_at", { ascending: false });
+
+		// if search string provided
+		if (search) {
+			query = query.ilike("name", `%${search}%`);
+		}
+
+		const { data: items, error } = await supabase.rpc("get_items", {
+			search: search ?? undefined,
+		});
+
+		if (error) {
+			messageApi.error("Failed to fetch items: " + error.message);
+			setData([]);
+		} else {
+			setData(items ?? []);
+		}
+
+		setLoading(false);
+	};
+
+	useEffect(() => {
+		fetchItems();
+	}, [search]);
+
+	// Trigger refresh if global refetch flag is set
+	useEffect(() => {
+		if (triggerRefetch) {
+			fetchItems();
+			setTriggerRefetch(false);
+		}
+	}, [triggerRefetch]);
 
 	const tableProps = useMemo(
 		() => ({
-			data: data?.items ?? ([] as Item[]),
+			data,
 			loading,
-			refetch,
+			refetch: fetchItems,
 			openModal,
 			messageApi,
 			setSearch,
-			search
+			search,
 		}),
-		[data, loading, refetch, openModal, messageApi, setSearch, search]
+		[data, loading, openModal, messageApi, search]
 	);
 
 	useEffect(() => {
 		if (triggerRefetch) {
-			refetch();
+			fetchItems();
 			setTriggerRefetch(false);
 		}
-	});
+	}, [triggerRefetch]);
 
 	if (loading) {
 		return <Skeleton active />;
@@ -77,7 +110,7 @@ const Inventory = () => {
 				key={selectedRecord?.id}
 				open={isModalOpen}
 				onClose={closeModal}
-				refetch={refetch}
+				refetch={fetchItems}
 				messageApi={messageApi}
 				record={selectedRecord}
 			/>

@@ -4,10 +4,9 @@ import PageLayout from "@/component/common/custom-antd/PageContainer";
 import AddProductModal from "@/component/product/dialog/addProductDialog";
 import ProductListTable from "@/component/product/productListTable";
 import { useRefetchFlag } from "@/context/TriggerRefetchContext";
-import type { Product, Query } from "@/generated/graphql";
-import { GET_PRODUCTS } from "@/graphql/inventory/products";
 import { useModal } from "@/hooks/useModal";
-import { useQuery } from "@apollo/client";
+import { supabase } from "@/lib/supabase-client";
+import type { Product } from "@/lib/supabase.types";
 import { Button, message, Skeleton, Tabs } from "antd";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
@@ -16,30 +15,51 @@ const Product = () => {
 	const { openModal, isModalOpen, closeModal, selectedRecord } = useModal();
 	const [search, setSearch] = useState("");
 	const { triggerRefetch, setTriggerRefetch } = useRefetchFlag();
+	const [loading, setLoading] = useState<boolean>(false);
+	const [products, setProducts] = useState<Product[]>([]);
 
-	const { data, loading, refetch } = useQuery<Query>(GET_PRODUCTS, {
-		variables: {
-			search,
-		},
-	});
+	const fetchProducts = useCallback(async () => {
+		setLoading(true);
+		const { data, error } = await supabase.rpc("get_products", {
+			search: search || null,
+		});
+		if (error) {
+			messageApi.error("Failed to load products");
+			setProducts([]);
+		} else {
+			setProducts(data ?? []);
+		}
+		setLoading(false);
+	}, [search, messageApi]);
 
-	const handleRefetch = useCallback(refetch, [refetch]);
+	// Trigger fetch
+	useEffect(() => {
+		fetchProducts();
+	}, [fetchProducts]);
+
+	// Refetch on trigger
+	useEffect(() => {
+		if (triggerRefetch) {
+			fetchProducts();
+			setTriggerRefetch(false);
+		}
+	}, [triggerRefetch, fetchProducts, setTriggerRefetch]);
 
 	const tableProps = useMemo(
 		() => ({
-			data: data?.products ?? ([] as Product[]),
+			data: products ?? ([] as Product[]),
 			loading,
-			refetch: handleRefetch,
+			refetch: fetchProducts,
 			openModal,
 			messageApi,
 			setSearch,
 			search,
 		}),
-		[data, loading, handleRefetch, openModal, messageApi, setSearch, search]
+		[products, loading, fetchProducts, openModal, messageApi, setSearch, search]
 	);
 	useEffect(() => {
 		if (triggerRefetch) {
-			refetch();
+			fetchProducts();
 			setTriggerRefetch(false);
 		}
 	});
@@ -78,7 +98,7 @@ const Product = () => {
 				key={selectedRecord?.id}
 				open={isModalOpen}
 				onClose={closeModal}
-				refetch={refetch}
+				refetch={fetchProducts}
 				messageApi={messageApi}
 				record={selectedRecord}
 			/>

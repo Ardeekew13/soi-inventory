@@ -1,7 +1,6 @@
 "use client";
 
-import { ME_QUERY } from "@/graphql/auth/me";
-import { useQuery } from "@apollo/client";
+import { supabase } from "@/lib/supabase-client";
 import { useRouter } from "next/navigation";
 import { ReactNode, useEffect, useState } from "react";
 
@@ -10,21 +9,42 @@ interface AuthGuardProps {
 }
 
 export default function AuthGuard({ children }: AuthGuardProps) {
-	const { data, loading } = useQuery(ME_QUERY);
 	const router = useRouter();
 	const [checked, setChecked] = useState(false);
+	const [loading, setLoading] = useState(true);
 
 	useEffect(() => {
-		if (!loading) {
-			if (!data?.me) {
+		async function checkUser() {
+			setLoading(true);
+			const {
+				data: { session },
+			} = await supabase.auth.getSession();
+
+			if (!session) {
+				// not logged in → send to login page
+				router.replace("/");
+			} else {
+				// logged in
+				setChecked(true);
+			}
+			setLoading(false);
+		}
+
+		checkUser();
+
+		// optional: listen for logout/login events
+		const {
+			data: { subscription },
+		} = supabase.auth.onAuthStateChange((_event, session) => {
+			if (!session) {
 				router.replace("/");
 			}
-			setChecked(true);
-		}
-	}, [loading, data, router]);
+		});
 
-	if (loading) return null;
-	if (!data?.me) return null;
+		return () => subscription.unsubscribe();
+	}, [router]);
+
+	if (loading || !checked) return null;
 
 	return <>{children}</>;
 }

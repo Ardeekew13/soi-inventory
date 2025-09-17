@@ -1,8 +1,8 @@
 "use client";
-import { Mutation, Product } from "@/generated/graphql";
-import { DELETE_PRODUCT } from "@/graphql/inventory/products";
+import { supabase } from "@/lib/supabase-client";
+import { Product } from "@/lib/supabase.types";
+import { formatPeso } from "@/utils/helper";
 import { DeleteOutlined } from "@ant-design/icons";
-import { useMutation } from "@apollo/client";
 import { Button, Input, Popconfirm, Space, Table } from "antd";
 import { MessageInstance } from "antd/es/message/interface";
 import { TableProps } from "antd/lib";
@@ -22,26 +22,15 @@ const ProductListTable = (props: IProps) => {
 	const { data, loading, refetch, openModal, messageApi, setSearch, search } =
 		props;
 
-	const [deleteProduct, { loading: deleteLoading }] = useMutation<Mutation>(
-		DELETE_PRODUCT,
-		{
-			onCompleted: (data) => {
-				if (data?.deleteProduct?.success) {
-					messageApi.success(data?.deleteProduct?.message);
-					refetch();
-				} else {
-					messageApi.error(data?.deleteItem?.message);
-				}
-			},
-		}
-	);
+	const handleDelete = async (id: string) => {
+		const { error } = await supabase.from("products").delete().eq("id", id);
 
-	const handleDelete = (id: string) => {
-		deleteProduct({
-			variables: {
-				id,
-			},
-		});
+		if (error) {
+			messageApi.error(error.message);
+		} else {
+			messageApi.success("Product deleted successfully");
+			refetch();
+		}
 	};
 
 	const columns: TableProps<Product>["columns"] = [
@@ -57,7 +46,7 @@ const ProductListTable = (props: IProps) => {
 			key: "price",
 			width: "10%",
 			align: "right",
-			render: (pricePerUnit: number) => `₱${pricePerUnit.toFixed(2)}`,
+			render: (pricePerUnit: number) => `${formatPeso(pricePerUnit)}`,
 		},
 		{
 			title: "Action",
@@ -102,7 +91,7 @@ const ProductListTable = (props: IProps) => {
 				<Table
 					rowKey={(record: Product) => record.id.toString()}
 					columns={columns}
-					loading={loading || deleteLoading}
+					loading={loading}
 					dataSource={data ?? ([] as Product[])}
 					size="small"
 					scroll={{ x: 800 }}

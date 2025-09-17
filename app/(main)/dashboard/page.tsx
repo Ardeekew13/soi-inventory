@@ -1,13 +1,11 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
 "use client";
 import CommonPageTitle from "@/component/common/CommonPageTitle";
 import StatisticCard from "@/component/common/custom-antd/DashboardCard";
 import PageLayout from "@/component/common/custom-antd/PageContainer";
 import DonutChart from "@/component/dashboard/DonutChart";
 import LineChart from "@/component/dashboard/LineChart";
-import { Query } from "@/generated/graphql";
-import { GET_SALE_REPORTS } from "@/graphql/inventory/dashboard";
-import { useQuery } from "@apollo/client";
+import { supabase } from "@/lib/supabase-client";
+import { SaleReportGroup } from "@/lib/supabase.types";
 import {
 	Card,
 	Col,
@@ -19,59 +17,35 @@ import {
 	Typography,
 } from "antd";
 import dayjs from "dayjs";
-import _ from "lodash";
 import { useEffect, useState } from "react";
-import { useMediaQuery } from "react-responsive";
 
 export default function Home() {
+	const [loading, setLoading] = useState(true);
+	const [report, setReport] = useState<any>(null);
+
 	const [startDate, setStartDate] = useState<string | null>(null);
 	const [endDate, setEndDate] = useState<string | null>(null);
-	const [grossProfit, setGrossProfit] = useState<number | null>(0);
-	const [totalAmountSales, setTotalAmountSales] = useState<number | null>(0);
-	const [totalCostOfGoods, setTotalCostOfGoods] = useState<number | null>(0);
-	const [totalItemsSold, setTotalItemsSold] = useState<number | null>(0);
-	const [totalSalesPercentage, setTotalSalesPercentage] = useState<
-		number | null
-	>(0);
-	const [totalCostPercentage, setTotalCostPercentage] = useState<number | null>(
-		0
-	);
-	const [grossProfitPercentage, setGrossProfitPercentage] = useState<
-		number | null
-	>(0);
 	const [year, setYear] = useState<string | null>(dayjs().year().toString());
-	const [availableYears, setAvailableYears] = useState<number[] | null>(null);
-	const { data, loading, refetch } = useQuery<Query>(GET_SALE_REPORTS, {
-		variables: {
-			startDate,
-			endDate,
-			year,
-		},
-	});
-	const isMobile = useMediaQuery({ query: "(max-width: 768px)" });
 	const [mode, setMode] = useState("All");
 
-	useEffect(() => {
-		if (data) {
-			setGrossProfit(data.saleReport?.grossProfit ?? 0);
-			setTotalAmountSales(data.saleReport?.totalAmountSales ?? 0);
-			setTotalCostOfGoods(data.saleReport?.totalCostOfGoods ?? 0);
-			setTotalItemsSold(data.saleReport?.totalItemsSold ?? 0);
-			setTotalSalesPercentage(data.saleReport?.totalSalesPercentage ?? 0);
-			setTotalCostPercentage(data.saleReport?.totalCostPercentage ?? 0);
-			setGrossProfitPercentage(data.saleReport?.grossProfitPercentage ?? 0);
-			setAvailableYears(data.saleReport?.availableYears ?? null);
+	async function fetchReports() {
+		setLoading(true);
+		const { data, error } = await supabase.rpc("get_sale_reports", {
+			start_date: startDate,
+			end_date: endDate,
+			p_year: year,
+		});
+		if (error) {
+			console.error("Error fetching report:", error);
+			setReport(null);
+		} else {
+			setReport((data as unknown as SaleReportGroup) ?? null);
 		}
-	}, [data]);
+		setLoading(false);
+	}
 
 	useEffect(() => {
-		if (!loading) {
-			refetch({
-				startDate,
-				endDate,
-				year,
-			});
-		}
+		fetchReports();
 	}, [startDate, endDate, year]);
 
 	const dateRange = (value: string) => {
@@ -106,10 +80,7 @@ export default function Home() {
 		setEndDate(endDate ? endDate.toISOString() : null);
 	};
 
-	
-	if (loading) {
-		return <Skeleton active />;
-	}
+	if (loading) return <Skeleton active />;
 
 	return (
 		<PageLayout
@@ -122,7 +93,7 @@ export default function Home() {
 			tabBarExtraContent={
 				<Flex justify="end" style={{ marginBottom: 20 }}>
 					<Segmented<string>
-						size={isMobile ? "small" : "middle"}
+						size="middle"
 						options={["All", "Daily", "Weekly", "Monthly", "Yearly"]}
 						value={mode}
 						onChange={(value) => {
@@ -137,77 +108,56 @@ export default function Home() {
 				<Col lg={6} sm={24} xs={24}>
 					<StatisticCard
 						title="Gross Profit"
-						value={grossProfit}
-						percentage={grossProfitPercentage ?? 0}
+						value={report?.grossProfit ?? 0}
+						percentage={report?.grossProfitPercentage ?? 0}
 					/>
 				</Col>
 				<Col lg={6} sm={24} xs={24}>
 					<StatisticCard
 						title="Gross Sales"
-						value={totalAmountSales}
-						percentage={totalSalesPercentage ?? 0}
+						value={report?.totalAmountSales ?? 0}
+						percentage={report?.totalSalesPercentage ?? 0}
 					/>
 				</Col>
 				<Col lg={6} sm={24} xs={24}>
 					<StatisticCard
 						title="Cost of Goods"
-						value={totalCostOfGoods}
-						percentage={totalCostPercentage ?? 0}
+						value={report?.totalCostOfGoods ?? 0}
+						percentage={report?.totalCostPercentage ?? 0}
 					/>
 				</Col>
 				<Col lg={6} sm={24} xs={24}>
-					<StatisticCard title="Total Items Sold" value={totalItemsSold} />
+					<StatisticCard
+						title="Total Items Sold"
+						value={report?.totalItemsSold ?? 0}
+					/>
 				</Col>
 			</Row>
+
 			<Row style={{ marginTop: 20 }} gutter={[16, 16]}>
 				<Col lg={14} sm={24} xs={24}>
-					<Card
-						style={{
-							height: 400,
-							display: "flex",
-							flexDirection: "column",
-							justifyContent: "space-between",
-						}}
-						styles={{
-							body: { flex: 1, display: "flex", flexDirection: "column" },
-						}}
-					>
+					<Card style={{ height: 400 }}>
 						<Flex justify="end">
 							<Select
 								value={year}
-								onChange={(value) => {
-									setYear(value.toString());
-								}}
+								onChange={(value) => setYear(value.toString())}
 							>
-								{_.isArray(availableYears)
-									? availableYears.map((year: number) => (
-											<Select.Option key={year} value={year}>
-												{year}
-											</Select.Option>
-									  ))
-									: null}
+								{report?.availableYears?.map((y: number) => (
+									<Select.Option key={y} value={y}>
+										{y}
+									</Select.Option>
+								))}
 							</Select>
 						</Flex>
-
-						{data?.saleReport && <LineChart data={data.saleReport} />}
+						{report && <LineChart data={report} />}
 					</Card>
 				</Col>
+
 				<Col lg={10} sm={24} xs={24}>
-					<Card
-						style={{
-							height: 400,
-							display: "flex",
-							flexDirection: "column",
-							justifyContent: "space-between",
-						}}
-						styles={{
-							body: { flex: 1, display: "flex", flexDirection: "column" },
-						}}
-					>
+					<Card style={{ height: 400 }}>
 						<Typography.Title level={4} style={{ textAlign: "center" }}>
 							Top Product Sold
 						</Typography.Title>
-
 						<div
 							style={{
 								flex: 1,
@@ -216,7 +166,7 @@ export default function Home() {
 								justifyContent: "center",
 							}}
 						>
-							{data?.saleReport && <DonutChart data={data?.saleReport} />}
+							{report && <DonutChart data={report} />}
 						</div>
 					</Card>
 				</Col>

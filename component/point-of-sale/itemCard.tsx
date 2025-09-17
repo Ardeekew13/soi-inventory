@@ -1,8 +1,7 @@
-import { Product } from "@/generated/graphql";
-import { CartProduct } from "@/utils/helper";
+import { Product } from "@/lib/supabase.types";
+import { addProduct, Cart, CartLine } from "@/utils/carts";
 import { PlusOutlined } from "@ant-design/icons";
 import {
-	Badge,
 	Button,
 	Card,
 	Col,
@@ -21,10 +20,11 @@ interface IProps {
 	loading: boolean;
 	refetch: () => void;
 	messageApi: MessageInstance;
-	setCart: React.Dispatch<React.SetStateAction<CartProduct[]>>;
-	cart: CartProduct[];
+	setCart: React.Dispatch<React.SetStateAction<Cart>>;
+	cart: Cart;
 	setSearch: React.Dispatch<React.SetStateAction<string>>;
 	search: string;
+	setDefaultTab: React.Dispatch<React.SetStateAction<string>>;
 }
 
 const PAGE_SIZE = 16;
@@ -39,25 +39,13 @@ const ItemPosCard = (props: IProps) => {
 		cart,
 		search,
 		setSearch,
+		setDefaultTab,
 	} = props;
 	const [currentPage, setCurrentPage] = useState(1);
 
-	const handleAddToCart = (record: Product) => {
-		if (record.availableUnits <= 0) {
-			return messageApi.error("Item is out of stock");
-		}
-		const existingItem = cart.find((item) => item.id === record.id);
-		if (existingItem) {
-			setCart((prevCart) =>
-				prevCart.map((item) =>
-					item.id === record.id
-						? { ...item, quantity: item.quantity + 1 }
-						: item
-				)
-			);
-		} else {
-			setCart((prevCart) => [...prevCart, { ...record, quantity: 1 }]);
-		}
+	const handleAddToCart = (product: CartLine) => {
+		setCart(addProduct(cart, product, 1));
+		setDefaultTab("carts");
 	};
 
 	const getStockBadgeColor = (units: number) => {
@@ -104,21 +92,32 @@ const ItemPosCard = (props: IProps) => {
 									<div
 										style={{ display: "flex", justifyContent: "space-between" }}
 									>
-										<Badge
-											color={getStockBadgeColor(item?.availableUnits)}
+										{/* <Badge
+											color={getStockBadgeColor(item?.!)}
 											text={
-												item?.availableUnits <= 0
+												item?.availableUnits! <= 0
 													? "Out of stock"
-													: item?.availableUnits <= 5
+													: item?.availableUnits! <= 5
 													? `Only ${item?.availableUnits} left!`
 													: `${item?.availableUnits} in stock`
 											}
-										/>
+										/> */}
 										<Button
 											type="primary"
 											shape="circle"
 											icon={<PlusOutlined />}
-											onClick={() => handleAddToCart(item)}
+											onClick={() =>
+												handleAddToCart({
+													tempKey: item.id,
+													productId: item.id,
+													name: item.name,
+													price: item.price,
+													quantity: 1,
+													fromDb: true,
+													printed_qty: 0,
+													ingredientsUsed: [],
+												})
+											}
 										/>
 									</div>
 								</div>

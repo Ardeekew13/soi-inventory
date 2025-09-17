@@ -1,51 +1,68 @@
-import { gql } from "@apollo/client";
+// import { gql } from "@apollo/client";
 
-export const GET_SALES = gql`
-	query Sales($search: String) {
-		sales(search: $search) {
-			createdAt
-			id
-			status
-			orderNo
-			costOfGoods
-			grossProfit
-			saleItems {
-				priceAtSale
-				product {
-					id
-					ingredientsUsed {
-						id
-						item {
-							name
-							id
-							currentStock
-							createdAt
-							pricePerUnit
-							unit
-							updatedAt
-						}
-						itemId
-						productId
-						quantityUsed
-					}
-					name
-					price
-					updatedAt
-					createdAt
-				}
-				productId
-				quantity
-			}
-			totalAmount
-		}
-	}
-`;
+// export const GET_SALES = gql`
+// 	query Sales($search: String, $defaultTab: String) {
+// 		sales(search: $search, defaultTab: $defaultTab) {
+// 			id
+// 			createdAt
+// 			status
+// 			orderNo
+// 			costOfGoods
+// 			grossProfit
+// 			tableNo
+// 			totalAmount
+// 			serviceType
+// 			paymentMethod
+// 			saleItems {
+// 				id
+// 				productId
+// 				quantity
+// 				priceAtSale
 
-export const VOID_TRANSACTION = gql`
-	mutation voidSale($id: UUID!, $voidReason: String!) {
-		voidSale(id: $id, voidReason: $voidReason) {
-			success
-			message
-		}
-	}
-`;
+// 				printed
+// 				product {
+// 					id
+// 					name
+// 					price
+// 					createdAt
+// 					updatedAt
+// 					availableUnits
+// 					ingredientsUsed {
+// 						id
+// 						itemId
+// 						productId
+// 						quantityUsed
+// 						item {
+// 							id
+// 							name
+// 							unit
+// 							currentStock
+// 							pricePerUnit
+// 							createdAt
+// 							updatedAt
+// 						}
+// 					}
+// 				}
+// 			}
+// 		}
+// 	}
+// `;
+
+// export const VOID_TRANSACTION = gql`
+// 	mutation voidSale(
+// 		$id: UUID!
+// 		$voidReason: String!
+// 		$voidedById: String!
+// 		$passwordSupervisor: String!
+// 	) {
+// 		voidSale(
+// 			id: $id
+// 			voidReason: $voidReason
+// 			voidedById: $voidedById
+// 			passwordSupervisor: $passwordSupervisor
+// 		) {
+// 			success
+// 			message
+// 		}
+// 	}
+// `;

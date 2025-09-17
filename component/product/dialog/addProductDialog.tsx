@@ -1,15 +1,8 @@
 import { StyledDiv } from "@/component/style";
-import {
-	Mutation,
-	Product,
-	ProductIngredient,
-	Query,
-} from "@/generated/graphql";
-import { GET_ITEMS } from "@/graphql/inventory/items";
-import { ADD_PRODUCT } from "@/graphql/inventory/products";
 import { useModal } from "@/hooks/useModal";
-import { requiredField } from "@/utils/helper";
-import { useMutation, useQuery } from "@apollo/client";
+import { supabase } from "@/lib/supabase-client";
+import { Item, Product, ProductIngredientDTO } from "@/lib/supabase.types";
+import { formatPeso, requiredField } from "@/utils/helper";
 import {
 	Button,
 	Col,
@@ -25,7 +18,7 @@ import {
 } from "antd";
 import { MessageInstance } from "antd/es/message/interface";
 import { TableProps } from "antd/lib";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useMediaQuery } from "react-responsive";
 import InventoryListModal from "./inventoryListModal";
 
@@ -40,182 +33,186 @@ interface ProductModalProps {
 const AddProductModal = (props: ProductModalProps) => {
 	const { open, onClose, record, refetch, messageApi } = props;
 	const [form] = Form.useForm();
-	const [ingredients, setIngredients] = useState<ProductIngredient[]>(
-		record?.ingredientsUsed ?? []
+	const [ingredients, setIngredients] = useState<ProductIngredientDTO[]>(
+		record?.ingredients ?? []
 	);
+
+	const [items, setItems] = useState<Item[]>([]);
 	const [selectedValues, setSelectedValues] = useState<string[]>([]);
 	const { openModal, isModalOpen, closeModal, selectedRecord } = useModal();
 	const isMobile = useMediaQuery({ query: "(max-width: 768px)" });
-	const {
-		data,
-		loading: loadingItem,
-		refetch: refetchItem,
-	} = useQuery<Query>(GET_ITEMS);
+	const [loading, setLoading] = useState<boolean>(false);
 
-	const [addProduct, { loading }] = useMutation<Mutation>(ADD_PRODUCT, {
-		onCompleted: (data) => {
-			if (data) {
-				messageApi.success("Product updated successfully");
+	useEffect(() => {
+		const fetchItems = async () => {
+			const { data, error } = await supabase.from("items").select("*");
+			if (error) {
+				messageApi.error("Failed to load items");
+			} else {
+				setItems(data ?? []);
+			}
+		};
+		fetchItems();
+	}, [messageApi]);
+
+	const handleCloseModal = () => {
+		form.resetFields();
+		onClose();
+		setIngredients([]);
+		setSelectedValues([]);
+	};
+
+	const handleAddItem = () => {
+		const newItems: ProductIngredientDTO[] = items
+			.filter(
+				(item) =>
+					selectedValues.includes(item.id) &&
+					!ingredients.some((ing) => ing.item_id === item.id)
+			)
+			.map((item) => ({
+				item_id: item.id,
+				qty: 1,
+				item_name: item.name,
+				unit: item?.unit,
+			}));
+
+		if (newItems.length === 0) {
+			messageApi.error("No new items selected");
+			return;
+		}
+
+		setIngredients([...ingredients, ...newItems]);
+		setSelectedValues([]);
+	};
+
+	const handleDecrement = (id: string) => {
+		const adjustedQty = ingredients?.map((ingredient) => {
+			if (ingredient.item_id === id) {
+				return {
+					...ingredient,
+					qty: ingredient.qty - 1,
+				};
+			}
+			return ingredient;
+		});
+		setIngredients(adjustedQty);
+	};
+
+	const handleIncrement = (id: string) => {
+		const adjustedQty = ingredients?.map((ingredient) => {
+			if (ingredient.item_id === id) {
+				return { ...ingredient, qty: ingredient.qty + 1 };
+			}
+			return ingredient;
+		});
+		setIngredients(adjustedQty);
+	};
+
+	const handleQuantityChange = (id: string, value: number) => {
+		const adjustedQty = ingredients?.map((ingredient) => {
+			if (ingredient.item_id === id) {
+				return { ...ingredient, qty: value };
+			}
+			return ingredient;
+		});
+		setIngredients(adjustedQty);
+	};
+
+	const handleSubmit = async (values: Product) => {
+		try {
+			if (ingredients.length === 0) {
+				messageApi.error("Please add at least one ingredient");
+				return;
+			}
+
+			const itemsPayload = ingredients.map((ingredient) => ({
+				item_id: ingredient.item_id,
+				qty: ingredient.qty,
+				unit: ingredient?.unit,
+			}));
+
+			const invalidQuantities = itemsPayload.filter((i) => i.qty <= 0);
+			if (invalidQuantities.length > 0) {
+				messageApi.error("Quantity must be at least 1");
+				return;
+			}
+
+			setLoading(true);
+
+			let result;
+			if (record?.id) {
+				result = await supabase.rpc("update_product", {
+					p_id: record.id,
+					p_name: values.name,
+					p_price: values.price,
+					p_is_active: true,
+					p_items: itemsPayload,
+				});
+			} else {
+				result = await supabase.rpc("add_product", {
+					p_name: values.name,
+					p_price: values.price,
+					p_is_active: true,
+					p_items: itemsPayload,
+				});
+			}
+
+			const { error, data } = result;
+			console.log("data", data);
+			setLoading(false);
+			if (data?.success) {
+				messageApi.success(data.message);
 				refetch();
 				form.resetFields();
 				onClose();
 			} else {
-				messageApi.error("Something went wrong");
+				messageApi.error(data?.message);
 			}
-		},
-	});
-
-	const handleCloseModal = () => {
-		Modal.destroyAll();
-		form.resetFields();
-		onClose();
-	};
-	const handleAddItem = () => {
-		let items = data?.items ?? ([] as ProductIngredient[]);
-		const newItems = items.filter(
-			(item) =>
-				selectedValues.includes(item.id) &&
-				!ingredients.some((ing) => ing.item.id === item.id)
-		);
-		if (selectedValues.length === 0) {
-			messageApi.error("Please select at least one item");
-			return;
-		}
-		if (newItems.length === 0) {
-			messageApi.error("All selected items already added");
-			return;
-		}
-
-		const productIngredients = newItems.map((item) => ({
-			item: {
-				id: item.id,
-				name: "name" in item ? item.name : "",
-				unit: "unit" in item ? item.unit : "",
-				pricePerUnit: "pricePerUnit" in item ? item.pricePerUnit : 0,
-			},
-			quantityUsed: 1,
-		}));
-
-		setIngredients([
-			...ingredients,
-			...(productIngredients as ProductIngredient[]),
-		]);
-		setSelectedValues([]);
-	};
-
-	const handleDecrement = (id: number) => {
-		const adjustedQty = ingredients?.map((ingredient) => {
-			if (ingredient.item.id === id) {
-				return {
-					...ingredient,
-					quantityUsed: ingredient.quantityUsed - 1,
-				};
-			}
-			return ingredient;
-		});
-		setIngredients(adjustedQty);
-	};
-
-	const handleIncrement = (id: number) => {
-		const adjustedQty = ingredients?.map((ingredient) => {
-			if (ingredient.item.id === id) {
-				return {
-					...ingredient,
-					quantityUsed: ingredient.quantityUsed + 1,
-				};
-			}
-			return ingredient;
-		});
-		setIngredients(adjustedQty);
-	};
-
-	const handleQuantityChange = (id: number, value: number) => {
-		const adjustedQty = ingredients?.map((ingredient) => {
-			if (ingredient.item.id === id) {
-				return {
-					...ingredient,
-					quantityUsed: value,
-				};
-			}
-			return ingredient;
-		});
-		setIngredients(adjustedQty);
-	};
-
-	const handleSubmit = (values: Product) => {
-		try {
-			if (ingredients?.length === 0) {
-				messageApi.error("Please add at least one ingredients");
-				return;
-			}
-			const itemsPayload = ingredients?.map((ingredient) => ({
-				itemId: ingredient.item.id,
-				quantityUsed: ingredient.quantityUsed,
-			}));
-
-			const invalidQuantities = itemsPayload.filter(
-				(item) => item.quantityUsed <= 0
-			);
-
-			if (invalidQuantities.length > 0) {
-				messageApi.error("Quantity of each ingredient must be at least 1");
-				return;
-			}
-			const payload = {
-				id: record?.id,
-				name: values.name,
-				price: values.price,
-				items: itemsPayload,
-			};
-			addProduct({
-				variables: {
-					...payload,
-				},
-			});
-		} catch (e: Error | any) {
+		} catch (e: any) {
+			setLoading(false);
 			messageApi.error(e.message);
 		}
 	};
 
 	const handleDelete = (id: string) => {
 		setIngredients(
-			ingredients?.filter((ingredient) => ingredient?.item.id !== id)
+			ingredients?.filter((ingredient) => ingredient?.item_id !== id)
 		);
 	};
 
-	const columns: TableProps<ProductIngredient>["columns"] = [
+	const columns: TableProps<ProductIngredientDTO>["columns"] = [
 		{
 			title: "Name",
-			dataIndex: ["item", "name"],
-			key: "name",
+			dataIndex: "item_name",
+			key: "item_name",
 			width: 250,
 		},
 		{
 			title: "Unit",
-			dataIndex: ["item", "unit"],
+			dataIndex: "unit",
 			key: "unit",
 			width: "10%",
 		},
 		{
 			title: "Quantity",
-			dataIndex: "quantityUsed",
-			key: "quantityUsed",
+			dataIndex: "qty",
+			key: "qty",
 			width: "25%",
 			align: "center",
-			render: (_, record: ProductIngredient) => (
+			render: (_, record) => (
 				<>
-					<Button size="small" onClick={() => handleDecrement(record?.item.id)}>
+					<Button size="small" onClick={() => handleDecrement(record?.item_id)}>
 						-
 					</Button>
 					<InputNumber
-						value={record?.quantityUsed}
+						value={record?.qty}
 						onChange={(value) =>
-							value !== null && handleQuantityChange(record?.item.id, value)
+							value !== null && handleQuantityChange(record?.item_id, value)
 						}
 						min={0}
 						style={{ margin: "0 10px", width: 50 }}
 					/>
-					<Button size="small" onClick={() => handleIncrement(record?.item.id)}>
+					<Button size="small" onClick={() => handleIncrement(record?.item_id)}>
 						+
 					</Button>
 				</>
@@ -227,8 +224,11 @@ const AddProductModal = (props: ProductModalProps) => {
 			key: "totalPrice",
 			width: "15%",
 			align: "right",
-			render: (_, record: ProductIngredient) =>
-				`₱${(record?.quantityUsed * record?.item.pricePerUnit).toFixed(2)}`,
+			render: (_, record) =>
+				`${formatPeso(
+					record.qty *
+						(items.find((i) => i.id === record.item_id)?.price_per_unit ?? 0)
+				)}`,
 		},
 		{
 			title: "Action",
@@ -237,20 +237,21 @@ const AddProductModal = (props: ProductModalProps) => {
 			width: "10%",
 			align: "center",
 			fixed: "right",
-			render: (_, record: ProductIngredient) => (
-				<Button danger onClick={() => handleDelete(record?.item.id)}>
+			render: (_, record) => (
+				<Button danger onClick={() => handleDelete(record.item_id)}>
 					Delete
 				</Button>
 			),
 		},
 	];
-
+	console.log("record", record);
+	console.log("ingredients", ingredients);
 	return (
 		<Modal
 			destroyOnHidden={true}
 			maskClosable={false}
 			open={open}
-			onCancel={onClose}
+			onCancel={handleCloseModal}
 			width={1000}
 			centered
 			loading={loading}
@@ -312,7 +313,7 @@ const AddProductModal = (props: ProductModalProps) => {
 									.toLowerCase()
 									.includes(input.toLowerCase())
 							}
-							options={data?.items.map((item) => ({
+							options={items.map((item) => ({
 								label: item.name,
 								value: item.id,
 							}))}
@@ -336,7 +337,7 @@ const AddProductModal = (props: ProductModalProps) => {
 						<InventoryListModal open={isModalOpen} onClose={closeModal} />
 						<StyledDiv>
 							<Table
-								rowKey={(record) => record.item.id.toString()}
+								rowKey={(record): string => record.item_id as string}
 								columns={columns}
 								dataSource={ingredients}
 								style={{ width: "100%" }}
