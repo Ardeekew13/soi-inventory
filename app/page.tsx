@@ -1,6 +1,6 @@
 "use client";
 import { supabase } from "@/lib/supabase-client";
-import logo from "@/public/soi-logo.png";
+// import logo from "@/public/soi-logo.png";
 import { Button, Col, Form, Input, message, Row, Typography } from "antd";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
@@ -71,10 +71,10 @@ const LoginPage = () => {
 						<Typography.Title level={3} style={{ textAlign: "center" }}>
 							Welcome to
 						</Typography.Title>
-
+{/* 
 						<Row justify="center" style={{ marginBottom: 24 }}>
 							<Image src={logo} alt="logo" width={150} height={150} />
-						</Row>
+						</Row> */}
 
 						<Form.Item
 							label="Username"
