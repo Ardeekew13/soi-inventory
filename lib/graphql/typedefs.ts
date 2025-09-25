@@ -1,6 +1,9 @@
 import { gql } from "@apollo/client";
 
 export const typeDefs = gql`
+  scalar ObjectId
+  scalar DateTime
+
   type Query {
     items(search: String): [Item!]!
     products(search: String): [Product!]!
@@ -38,7 +41,7 @@ export const typeDefs = gql`
   }
 
   type Sale {
-    id: UUID!
+    id: ObjectId!
     totalAmount: Float!
     grossProfit: Float!
     costOfGoods: Float!
@@ -50,14 +53,14 @@ export const typeDefs = gql`
   }
 
   type SaleItem {
-    productId: UUID!
+    productId: ObjectId!
     product: Product!
     quantity: Float!
     priceAtSale: Float!
   }
 
   type Item {
-    id: UUID!
+    id: ObjectId!
     name: String!
     unit: String!
     pricePerUnit: Float!
@@ -67,17 +70,17 @@ export const typeDefs = gql`
   }
 
   input ProductIngredientInput {
-    itemId: UUID!
+    itemId: ObjectId!
     quantityUsed: Float!
   }
 
   input SaleItemInput {
-    productId: UUID!
+    productId: ObjectId!
     quantity: Float!
   }
 
   type SaleResponse {
-    id: UUID!
+    id: ObjectId!
     totalAmount: Float!
     grossProfit: Float!
     message: String!
@@ -85,15 +88,15 @@ export const typeDefs = gql`
   }
 
   type ProductIngredient {
-    id: UUID!
-    productId: UUID!
-    itemId: UUID!
+    id: ObjectId!
+    productId: ObjectId!
+    itemId: ObjectId!
     quantityUsed: Float!
     item: Item!
   }
 
   type Product {
-    id: UUID!
+    id: ObjectId!
     name: String!
     price: Float!
     ingredientsUsed: [ProductIngredient!]!
@@ -109,13 +112,13 @@ export const typeDefs = gql`
   type LoginResponse {
     success: Boolean!
     message: String!
-    id: UUID
+    id: ObjectId
     username: String
     role: String
   }
 
   type User {
-    id: UUID!
+    id: ObjectId!
     username: String!
     role: String!
     createdAt: String!
@@ -125,23 +128,23 @@ export const typeDefs = gql`
     login(username: String!, password: String!): LoginResponse!
     logout: Boolean!
     addItem(
-      id: UUID
+      id: ObjectId
       name: String!
       unit: String!
       pricePerUnit: Float!
       currentStock: Float!
     ): Item!
 
-    deleteItem(id: UUID!): DeletionResult!
+    deleteItem(id: ObjectId!): DeletionResult!
     addProduct(
       name: String!
       price: Float!
-      id: UUID
+      id: ObjectId
       items: [ProductIngredientInput!]
     ): Product!
-    deleteProduct(id: UUID!): DeletionResult!
+    deleteProduct(id: ObjectId!): DeletionResult!
 
     recordSale(items: [SaleItemInput!]!): SaleResponse!
-    voidSale(id: UUID!, voidReason: String!): DeletionResult!
+    voidSale(id: ObjectId!, voidReason: String!): DeletionResult!
   }
 `;
