@@ -1,14 +1,10 @@
-import { ApolloClient, InMemoryCache, createHttpLink } from "@apollo/client";
+import { ApolloClient, HttpLink, InMemoryCache } from "@apollo/client";
 
-const httpLink = createHttpLink({
-	uri:
-		process.env.NODE_ENV === "production"
-			? process.env.NEXT_PUBLIC_API_URL
-			: process.env.NEXT_DEV_URL,
-	credentials: "include",
-});
+export const runtime = "nodejs"; // <--- This line fixes the issue
 
-export const client = new ApolloClient({
-	link: httpLink,
+const client = new ApolloClient({
+	link: new HttpLink({ uri: "/api/graphql" }),
 	cache: new InMemoryCache(),
 });
+
+export default client;
