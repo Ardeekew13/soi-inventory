@@ -1,48 +1,69 @@
 "use client";
 import { Mutation } from "@/generated/graphql";
 import { LOGOUT_MUTATION } from "@/graphql/login/login";
+import { ME_QUERY } from "@/graphql/auth/me";
 import logo from "@/public/soi-logo.png";
 import { CloseOutlined, LogoutOutlined } from "@ant-design/icons";
-import { useMutation } from "@apollo/client";
+import { useMutation, useQuery, useApolloClient } from "@apollo/client";
 import { MenuOpenOutlined } from "@mui/icons-material";
 import GridViewOutlinedIcon from "@mui/icons-material/GridViewOutlined";
 import Inventory2OutlinedIcon from "@mui/icons-material/Inventory2Outlined";
 import ProductionQuantityLimitsOutlinedIcon from "@mui/icons-material/ProductionQuantityLimitsOutlined";
 import ReceiptLongOutlinedIcon from "@mui/icons-material/ReceiptLongOutlined";
 import ShoppingBagOutlinedIcon from "@mui/icons-material/ShoppingBagOutlined";
+import SettingsOutlinedIcon from "@mui/icons-material/SettingsOutlined";
+import AccountBalanceWalletOutlinedIcon from "@mui/icons-material/AccountBalanceWalletOutlined";
 import { Flex, Layout, Menu, Typography } from "antd";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useMediaQuery } from "react-responsive";
+import { hasPermission } from "@/utils/permissions";
 
 const { Header, Content, Sider } = Layout;
 
-const items = [
+const allItems = [
 	{
 		label: "Dashboard",
 		key: "/dashboard",
 		icon: <GridViewOutlinedIcon />,
+		permission: { module: "dashboard", action: "view" },
 	},
 	{
 		label: "Inventory",
 		key: "/inventory",
 		icon: <Inventory2OutlinedIcon />,
+		permission: { module: "inventory", action: "view" },
 	},
 	{
 		label: "Product",
 		key: "/product",
 		icon: <ProductionQuantityLimitsOutlinedIcon />,
+		permission: { module: "product", action: "view" },
 	},
 	{
 		label: "Point Of Sale",
 		key: "/point-of-sale",
 		icon: <ShoppingBagOutlinedIcon />,
+		permission: { module: "pointOfSale", action: "view" },
 	},
 	{
 		label: "Transaction",
 		key: "/transaction",
 		icon: <ReceiptLongOutlinedIcon />,
+		permission: { module: "transaction", action: "view" },
+	},
+	{
+		label: "Cash Drawer",
+		key: "/cash-drawer",
+		icon: <AccountBalanceWalletOutlinedIcon />,
+		permission: { module: "cashDrawer", action: "view" },
+	},
+	{
+		label: "Settings",
+		key: "/settings",
+		icon: <SettingsOutlinedIcon />,
+		permission: { module: "settings", action: "view" },
 	},
 ];
 
@@ -51,6 +72,32 @@ export default function NavbarLayout({
 }: {
 	children: React.ReactNode;
 }) {
+	const { data: meData, loading: meLoading } = useQuery(ME_QUERY, {
+		fetchPolicy: 'cache-and-network',
+	});
+	const userPermissions = meData?.me?.permissions || {};
+	const userRole = meData?.me?.role;
+	const apolloClient = useApolloClient();
+
+	const items = useMemo(() => {
+		// SUPER_ADMIN has full access to all menu items
+		if (userRole === 'SUPER_ADMIN') {
+			return allItems;
+		}
+		
+		// If still loading user data, don't show any menu items yet
+		if (meLoading || !meData) {
+			return [];
+		}
+		
+		// Show menu if user has the required permission for the module
+		return allItems.filter(item => {
+			const perm = item.permission;
+			if (!perm) return true; // fallback: show if no permission required
+			return hasPermission(userPermissions, perm.module, perm.action as any);
+		});
+	}, [userPermissions, userRole, meLoading, meData]);
+
 	const [selectedKeys, setSelectedKeys] = useState<string[]>(["/"]);
 	const router = useRouter();
 	const isMobile = useMediaQuery({ query: "(max-width: 768px)" });
@@ -60,6 +107,8 @@ export default function NavbarLayout({
 
 	const handleLogout = async () => {
 		await logout();
+		// Clear Apollo cache on logout to prevent stale user data
+		await apolloClient.clearStore();
 		router.push("/");
 	};
 

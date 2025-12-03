@@ -7,11 +7,18 @@ import { useRefetchFlag } from "@/context/TriggerRefetchContext";
 import type { Product, Query } from "@/generated/graphql";
 import { GET_PRODUCTS } from "@/graphql/inventory/products";
 import { useModal } from "@/hooks/useModal";
+import { usePermissionGuard } from "@/hooks/usePermissionGuard";
 import { useQuery } from "@apollo/client";
 import { Button, message, Skeleton, Tabs } from "antd";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 const Product = () => {
+	// Permission guard - will redirect if no access
+	const { loading: permissionLoading, userPermissions } = usePermissionGuard({
+		module: "product",
+		action: "view",
+	});
+
 	const [messageApi, contextHolder] = message.useMessage();
 	const { openModal, isModalOpen, closeModal, selectedRecord } = useModal();
 	const [search, setSearch] = useState("");
@@ -21,21 +28,23 @@ const Product = () => {
 		variables: {
 			search,
 		},
+		skip: permissionLoading, // Skip query while checking permissions
 	});
 
 	const handleRefetch = useCallback(refetch, [refetch]);
 
 	const tableProps = useMemo(
 		() => ({
-			data: data?.products ?? ([] as Product[]),
+			data: data?.productsList?.products ?? ([] as any[]),
 			loading,
 			refetch: handleRefetch,
 			openModal,
 			messageApi,
 			setSearch,
 			search,
+			userPermissions,
 		}),
-		[data, loading, handleRefetch, openModal, messageApi, setSearch, search]
+		[data, loading, handleRefetch, openModal, messageApi, setSearch, search, userPermissions]
 	);
 	useEffect(() => {
 		if (triggerRefetch) {
@@ -44,7 +53,8 @@ const Product = () => {
 		}
 	});
 
-	if (loading) {
+	// Show loading while checking permissions or fetching data
+	if (permissionLoading || loading) {
 		return <Skeleton active />;
 	}
 
@@ -56,11 +66,13 @@ const Product = () => {
 					subTitle="Manage your sellable products here. You can add, edit, or delete items to keep your product list up to date."
 				/>
 			}
-			extra={[
-				<Button key="1" type="primary" onClick={() => openModal()}>
-					Add Product
-				</Button>,
-			]}
+			extra={
+				userPermissions?.product?.includes('addEdit') ? [
+					<Button key="1" type="primary" onClick={() => openModal()}>
+						Add Product
+					</Button>,
+				] : []
+			}
 		>
 			<Tabs
 				defaultActiveKey="1"
@@ -75,7 +87,7 @@ const Product = () => {
 			/>
 			{contextHolder}
 			<AddProductModal
-				key={selectedRecord?.id}
+				key={selectedRecord?._id}
 				open={isModalOpen}
 				onClose={closeModal}
 				refetch={refetch}

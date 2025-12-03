@@ -5,9 +5,9 @@ import { DeleteOutlined } from "@ant-design/icons";
 import { Button, Input, Space, Table } from "antd";
 import { MessageInstance } from "antd/es/message/interface";
 import { TableProps } from "antd/lib";
-import dayjs from "dayjs";
 import { StyledDiv } from "../style";
 import VoidTransactionModal from "./dialog/voidModal";
+import { pesoFormatter, dateFormatterWithTime } from "@/utils/helper";
 
 interface IProps {
 	data: Sale[];
@@ -17,10 +17,11 @@ interface IProps {
 	openModal: (record: Sale) => void;
 	setSearch: React.Dispatch<React.SetStateAction<string>>;
 	search: string;
+	userPermissions?: Record<string, string[]>;
 }
 
 const TransactionListTable = (props: IProps) => {
-	const { data, loading, refetch, openModal, messageApi, setSearch, search } =
+	const { data, loading, refetch, openModal, messageApi, setSearch, search, userPermissions } =
 		props;
 	const {
 		isModalOpen: isModalVoidOpen,
@@ -33,42 +34,47 @@ const TransactionListTable = (props: IProps) => {
 			title: "Transaction Number",
 			dataIndex: "orderNo",
 			key: "orderNo",
-			width: "10%",
+			width: 200,
 		},
 		{
 			title: "Transaction Date",
 			dataIndex: "createdAt",
 			key: "createdAt",
+			width: 200,
 			render: (createdAt: string) => {
-				return dayjs(createdAt).format("MM/DD/YYYY hh:mm A");
+				return dateFormatterWithTime(createdAt);
 			},
 		},
 		{
 			title: "Cost Of Goods",
 			dataIndex: "costOfGoods",
 			key: "costOfGoods",
-			width: "15%",
-			render: (value: number) => value?.toFixed(2),
+			width: 150,
+			align: "right",
+			render: (value: number) => pesoFormatter(value),
 		},
 		{
 			title: "Total Amount",
 			dataIndex: "totalAmount",
 			key: "totalAmount",
-			render: (value: number) => value?.toFixed(2),
+			width: 150,
+			align: "right",
+			render: (value: number) => pesoFormatter(value),
 		},
 		{
 			title: "Gross Profit",
 			dataIndex: "grossProfit",
 			key: "grossProfit",
-			width: "15%",
-			render: (value: number) => value?.toFixed(2),
+			width: 150,
+			align: "right",
+			render: (value: number) => pesoFormatter(value),
 		},
 
 		{
 			title: "Action",
 			dataIndex: "action",
 			key: "action",
-			width: "10%",
+			width: 120,
 			align: "center",
 			fixed: "right",
 			render: (_, record: Sale) => {
@@ -76,14 +82,18 @@ const TransactionListTable = (props: IProps) => {
 					<Space
 						style={{ justifyContent: "center", alignItems: "center", flex: 1 }}
 					>
-						<Button type="link" size="small" onClick={() => openModal(record)}>
-							View
-						</Button>
+						{userPermissions?.transaction?.includes('view') && (
+							<Button type="link" size="small" onClick={() => openModal(record)}>
+								View
+							</Button>
+						)}
 
-						<DeleteOutlined
-							style={{ color: "red" }}
-							onClick={() => openModalVoid(record)}
-						/>
+						{userPermissions?.transaction?.includes('void') && (
+							<DeleteOutlined
+								style={{ color: "red" }}
+								onClick={() => openModalVoid(record)}
+							/>
+						)}
 					</Space>
 				);
 			},
@@ -100,11 +110,11 @@ const TransactionListTable = (props: IProps) => {
 			/>
 			<StyledDiv>
 				<Table
-					rowKey={(record: Sale) => record.id.toString()}
+					rowKey={(record: Sale) => record._id.toString()}
 					columns={columns}
 					loading={loading}
 					dataSource={data ?? ([] as Sale[])}
-					size="small"
+					size="middle"
 					scroll={{ x: 1000 }}
 				/>
 			</StyledDiv>

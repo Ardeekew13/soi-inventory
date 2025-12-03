@@ -1,6 +1,8 @@
 "use client";
 import { Mutation, Product } from "@/generated/graphql";
 import { DELETE_PRODUCT } from "@/graphql/inventory/products";
+import { pesoFormatter } from "@/utils/helper";
+import { hasPermission } from "@/utils/permissions";
 import { DeleteOutlined } from "@ant-design/icons";
 import { useMutation } from "@apollo/client";
 import { Button, Input, Popconfirm, Space, Table } from "antd";
@@ -16,10 +18,11 @@ interface IProps {
 	openModal: (record: Product) => void;
 	setSearch: React.Dispatch<React.SetStateAction<string>>;
 	search: string;
+	userPermissions?: Record<string, string[]>;
 }
 
 const ProductListTable = (props: IProps) => {
-	const { data, loading, refetch, openModal, messageApi, setSearch, search } =
+	const { data, loading, refetch, openModal, messageApi, setSearch, search, userPermissions } =
 		props;
 
 	const [deleteProduct, { loading: deleteLoading }] = useMutation<Mutation>(
@@ -57,7 +60,7 @@ const ProductListTable = (props: IProps) => {
 			key: "price",
 			width: "10%",
 			align: "right",
-			render: (pricePerUnit: number) => `₱${pricePerUnit.toFixed(2)}`,
+			render: (pricePerUnit: number) => pesoFormatter(pricePerUnit),
 		},
 		{
 			title: "Action",
@@ -74,15 +77,17 @@ const ProductListTable = (props: IProps) => {
 						<Button type="link" size="small" onClick={() => openModal(record)}>
 							View
 						</Button>
-						<Popconfirm
-							title="Delete Item"
-							description="Are you sure you want to delete this item?"
-							onConfirm={() => handleDelete(record.id)}
-							okText="Delete"
-							cancelText="Cancel"
-						>
-							<DeleteOutlined style={{ color: "red" }} />
-						</Popconfirm>
+						{hasPermission(userPermissions, 'product', 'delete') && (
+							<Popconfirm
+								title="Delete Item"
+								description="Are you sure you want to delete this item?"
+								onConfirm={() => handleDelete(record?._id)}
+								okText="Delete"
+								cancelText="Cancel"
+							>
+								<DeleteOutlined style={{ color: "red" }} />
+							</Popconfirm>
+						)}
 					</Space>
 				);
 			},
@@ -100,7 +105,7 @@ const ProductListTable = (props: IProps) => {
 			/>
 			<StyledDiv>
 				<Table
-					rowKey={(record: Product) => record.id.toString()}
+					rowKey={(record: Product) => record?._id}
 					columns={columns}
 					loading={loading || deleteLoading}
 					dataSource={data ?? ([] as Product[])}

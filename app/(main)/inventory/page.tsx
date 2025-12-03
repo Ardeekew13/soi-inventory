@@ -4,36 +4,53 @@ import PageLayout from "@/component/common/custom-antd/PageContainer";
 import AddItemModal from "@/component/inventory/dialog/addItemDialog";
 import ItemListTable from "@/component/inventory/itemListTable";
 import { useRefetchFlag } from "@/context/TriggerRefetchContext";
-import { Item, Query } from "@/generated/graphql";
+import { Item, ItemsResponse, Query } from "@/generated/graphql";
 import { GET_ITEMS } from "@/graphql/inventory/items";
 import { useModal } from "@/hooks/useModal";
+import { usePermissionGuard } from "@/hooks/usePermissionGuard";
+import { CommonStateFilterI } from "@/utility/filters";
 import { useQuery } from "@apollo/client";
 import { Button, message, Skeleton, Tabs } from "antd";
+import { skip } from "node:test";
 import { useEffect, useMemo, useState } from "react";
 
 const Inventory = () => {
+	// Permission guard - will redirect if no access
+	const { loading: permissionLoading, userPermissions } = usePermissionGuard({
+		module: "inventory",
+		action: "view",
+	});
+
 	const [messageApi, contextHolder] = message.useMessage();
 	const { openModal, isModalOpen, closeModal, selectedRecord } = useModal();
-	const [search, setSearch] = useState("");
 	const { triggerRefetch, setTriggerRefetch } = useRefetchFlag();
-
+	const [state, setState] = useState<CommonStateFilterI>({
+		page: 1,
+		limit: 10,
+		search: "",
+	});
+	
 	const { data, loading, refetch } = useQuery<Query>(GET_ITEMS, {
 		variables: {
-			search,
+			search: state?.search,
+			limit: state?.limit,
+			skip: ((state.page ?? 1) - 1) * (state.limit ?? 10),
 		},
+		skip: permissionLoading, // Skip query while checking permissions
 	});
 
 	const tableProps = useMemo(
 		() => ({
-			data: data?.items ?? ([] as Item[]),
+			data: data?.itemsList as ItemsResponse,
 			loading,
 			refetch,
 			openModal,
 			messageApi,
-			setSearch,
-			search
+			state,
+			setState,
+			userPermissions,
 		}),
-		[data, loading, refetch, openModal, messageApi, setSearch, search]
+		[data, loading, refetch, openModal, messageApi, state, setState, userPermissions]
 	);
 
 	useEffect(() => {
@@ -43,7 +60,8 @@ const Inventory = () => {
 		}
 	});
 
-	if (loading) {
+	// Show loading while checking permissions or fetching data
+	if (permissionLoading || loading) {
 		return <Skeleton active />;
 	}
 	return (
@@ -55,9 +73,11 @@ const Inventory = () => {
 				/>
 			}
 			extra={
-				<Button key="1" type="primary" onClick={() => openModal()}>
-					Add Item
-				</Button>
+				userPermissions?.inventory?.includes('addEdit') && (
+					<Button key="1" type="primary" onClick={() => openModal()}>
+						Add Item
+					</Button>
+				)
 			}
 		>
 			<Tabs
@@ -74,7 +94,7 @@ const Inventory = () => {
 
 			{contextHolder}
 			<AddItemModal
-				key={selectedRecord?.id}
+				key={selectedRecord?._id}
 				open={isModalOpen}
 				onClose={closeModal}
 				refetch={refetch}
