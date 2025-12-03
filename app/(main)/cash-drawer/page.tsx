@@ -1,47 +1,43 @@
 "use client";
+import CommonPageTitle from "@/component/common/CommonPageTitle";
 import {
+  ADD_CASH_IN,
+  ADD_CASH_OUT,
+  CLOSE_CASH_DRAWER,
+  GET_CASH_DRAWER_HISTORY,
+  GET_CURRENT_CASH_DRAWER,
+  OPEN_CASH_DRAWER,
+} from "@/graphql/cash-drawer/cash-drawer";
+import { usePermissionGuard } from "@/hooks/usePermissionGuard";
+import { pesoFormatter } from "@/utils/helper";
+import {
+  CloseCircleOutlined,
+  DollarOutlined,
+  HistoryOutlined,
+  MinusCircleOutlined,
+  PlusCircleOutlined,
+} from "@ant-design/icons";
+import { useMutation, useQuery } from "@apollo/client";
+import {
+  Alert,
   Button,
   Card,
   Col,
-  Row,
-  Space,
-  Typography,
-  Statistic,
+  Divider,
+  Input,
+  InputNumber,
   List,
-  Tag,
   message,
   Modal,
-  InputNumber,
-  Input,
+  Row,
+  Space,
+  Statistic,
   Table,
-  Divider,
-  Alert,
+  Tag,
+  Typography,
 } from "antd";
-import {
-  DollarOutlined,
-  PlusCircleOutlined,
-  MinusCircleOutlined,
-  CloseCircleOutlined,
-  HistoryOutlined,
-  CheckCircleOutlined,
-} from "@ant-design/icons";
-import { useState } from "react";
-import { useMutation, useQuery } from "@apollo/client";
-import { hasPermission } from "@/utils/permissions";
-import { usePermissionGuard } from "@/hooks/usePermissionGuard";
-import {
-  GET_CURRENT_CASH_DRAWER,
-  GET_CASH_DRAWER_HISTORY,
-  OPEN_CASH_DRAWER,
-  CLOSE_CASH_DRAWER,
-  ADD_CASH_IN,
-  ADD_CASH_OUT,
-} from "@/graphql/cash-drawer/cash-drawer";
-import { pesoFormatter } from "@/utils/helper";
 import dayjs from "dayjs";
-import CommonPageTitle from "@/component/common/CommonPageTitle";
-import { useEffect } from "react";
-import { Query } from "@/generated/graphql";
+import { useEffect, useState } from "react";
 
 const CashDrawerPage = () => {
   // Permission guard - will redirect if no access
@@ -66,13 +62,14 @@ const CashDrawerPage = () => {
   const { data, loading, refetch } = useQuery(GET_CURRENT_CASH_DRAWER, {
     skip: permissionLoading,
   });
-  const { data: historyData, loading: historyLoading, refetch: refetchHistory } = useQuery(
-    GET_CASH_DRAWER_HISTORY,
-    { 
-      variables: { limit: 10 },
-      skip: permissionLoading,
-    }
-  );
+  const {
+    data: historyData,
+    loading: historyLoading,
+    refetch: refetchHistory,
+  } = useQuery(GET_CASH_DRAWER_HISTORY, {
+    variables: { limit: 10 },
+    skip: permissionLoading,
+  });
 
   const currentDrawer = data?.currentCashDrawer;
   const drawerHistory = historyData?.cashDrawerHistory || [];
@@ -203,13 +200,15 @@ const CashDrawerPage = () => {
       title: "Opened At",
       dataIndex: "openedAt",
       key: "openedAt",
-      render: (date: string) => dayjs(parseInt(date)).format("MMM D, YYYY h:mm A"),
+      render: (date: string) =>
+        dayjs(parseInt(date)).format("MMM D, YYYY h:mm A"),
     },
     {
       title: "Closed At",
       dataIndex: "closedAt",
       key: "closedAt",
-      render: (date: string) => dayjs(parseInt(date)).format("MMM D, YYYY h:mm A"),
+      render: (date: string) =>
+        dayjs(parseInt(date)).format("MMM D, YYYY h:mm A"),
     },
     {
       title: "Opened By",
@@ -318,8 +317,8 @@ const CashDrawerPage = () => {
             showIcon
             closable
             action={
-              <Button 
-                size="small" 
+              <Button
+                size="small"
                 danger
                 icon={<CloseCircleOutlined />}
                 onClick={() => setShowCloseModal(true)}
@@ -390,7 +389,10 @@ const CashDrawerPage = () => {
           <Card title="Sales Breakdown by Payment Method">
             <Row gutter={12}>
               <Col span={8}>
-                <Card size="small" style={{ backgroundColor: "#f0f9ff", borderColor: "#91d5ff" }}>
+                <Card
+                  size="small"
+                  style={{ backgroundColor: "#f0f9ff", borderColor: "#91d5ff" }}
+                >
                   <Statistic
                     title="💵 Cash Sales"
                     value={currentDrawer.cashSales}
@@ -401,7 +403,10 @@ const CashDrawerPage = () => {
                 </Card>
               </Col>
               <Col span={8}>
-                <Card size="small" style={{ backgroundColor: "#f6ffed", borderColor: "#b7eb8f" }}>
+                <Card
+                  size="small"
+                  style={{ backgroundColor: "#f6ffed", borderColor: "#b7eb8f" }}
+                >
                   <Statistic
                     title="🏦 Bank Transfer"
                     value={currentDrawer.bankTransferSales}
@@ -412,7 +417,10 @@ const CashDrawerPage = () => {
                 </Card>
               </Col>
               <Col span={8}>
-                <Card size="small" style={{ backgroundColor: "#fff7e6", borderColor: "#ffd591" }}>
+                <Card
+                  size="small"
+                  style={{ backgroundColor: "#fff7e6", borderColor: "#ffd591" }}
+                >
                   <Statistic
                     title="💳 Card Sales"
                     value={currentDrawer.cardSales}
@@ -425,7 +433,10 @@ const CashDrawerPage = () => {
             </Row>
             <Row gutter={12} style={{ marginTop: 12 }}>
               <Col span={12}>
-                <Card size="small" style={{ backgroundColor: "#fff1f0", borderColor: "#ffccc7" }}>
+                <Card
+                  size="small"
+                  style={{ backgroundColor: "#fff1f0", borderColor: "#ffccc7" }}
+                >
                   <Statistic
                     title="📝 Credit Sales"
                     value={currentDrawer.creditSales}
@@ -436,7 +447,10 @@ const CashDrawerPage = () => {
                 </Card>
               </Col>
               <Col span={12}>
-                <Card size="small" style={{ backgroundColor: "#f9f0ff", borderColor: "#d3adf7" }}>
+                <Card
+                  size="small"
+                  style={{ backgroundColor: "#f9f0ff", borderColor: "#d3adf7" }}
+                >
                   <Statistic
                     title="📱 GCash Sales"
                     value={currentDrawer.gcashSales}
@@ -494,9 +508,14 @@ const CashDrawerPage = () => {
                         {transaction.type.replace("_", " ")}
                       </Tag>
                       <div>
-                        <Typography.Text>{transaction.description}</Typography.Text>
+                        <Typography.Text>
+                          {transaction.description}
+                        </Typography.Text>
                         <br />
-                        <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+                        <Typography.Text
+                          type="secondary"
+                          style={{ fontSize: 12 }}
+                        >
                           {dayjs(parseInt(transaction.createdAt)).format(
                             "h:mm A"
                           )}
@@ -544,7 +563,9 @@ const CashDrawerPage = () => {
         confirmLoading={openLoading}
       >
         <Space direction="vertical" style={{ width: "100%" }}>
-          <Typography.Text>Enter the opening balance for your shift:</Typography.Text>
+          <Typography.Text>
+            Enter the opening balance for your shift:
+          </Typography.Text>
           <InputNumber
             size="large"
             style={{ width: "100%" }}
