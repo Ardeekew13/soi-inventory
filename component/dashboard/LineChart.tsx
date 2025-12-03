@@ -57,10 +57,10 @@ const LineChart = (props: IProps) => {
 	const totalSalesData = new Array(12).fill(0);
 
 	if (data?.groupSales) {
-		data?.groupSales.forEach((entry) => {
-			const monthIndex = new Date(entry.month + "-01").getMonth();
-			grossProfitData[monthIndex] = entry.grossProfit ?? 0;
-			totalSalesData[monthIndex] = entry.totalAmountSales ?? 0;
+		data?.groupSales.forEach((entry, index) => {
+			// Use the index directly since groupSales is already ordered by month
+			grossProfitData[index] = entry.grossProfit ?? 0;
+			totalSalesData[index] = entry.totalAmountSales ?? 0;
 		});
 	}
 

@@ -6,7 +6,9 @@
     "dev": "next dev --turbopack",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "codegen": "graphql-codegen --config codegen.ts",
+    "seed:users": "tsx lib/seedUsers.ts"
   },
   "dependencies": {
     "@ant-design/compatible": "^5.1.4",
@@ -23,6 +25,7 @@
     "antd": "^5.26.2",
     "apexcharts": "^5.2.0",
     "bcryptjs": "^3.0.2",
+    "cloudinary": "^2.8.0",
     "cookies-next": "^6.1.0",
     "dayjs": "^1.11.13",
     "file-saver": "^2.0.5",

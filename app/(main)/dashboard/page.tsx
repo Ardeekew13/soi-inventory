@@ -5,6 +5,7 @@ import StatisticCard from "@/component/common/custom-antd/DashboardCard";
 import PageLayout from "@/component/common/custom-antd/PageContainer";
 import DonutChart from "@/component/dashboard/DonutChart";
 import LineChart from "@/component/dashboard/LineChart";
+import OfflineSyncStatus from "@/component/common/OfflineSyncStatus";
 import { Query } from "@/generated/graphql";
 import { GET_SALE_REPORTS } from "@/graphql/inventory/dashboard";
 import { useQuery } from "@apollo/client";
@@ -133,6 +134,11 @@ export default function Home() {
         </Flex>
       }
     >
+      <Row gutter={[16, 16]} style={{ marginBottom: 16 }}>
+        <Col span={24}>
+          <OfflineSyncStatus />
+        </Col>
+      </Row>
       <Row gutter={[16, 16]}>
         <Col lg={6} sm={24} xs={24}>
           <StatisticCard

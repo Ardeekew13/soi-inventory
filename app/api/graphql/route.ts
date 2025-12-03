@@ -1,13 +1,14 @@
 import { ApolloServer } from "@apollo/server";
 import { startServerAndCreateNextHandler } from "@as-integrations/next";
-import { typeDefs } from "@/app/api/graphql/schema";
+import { typeDefs } from "../schema";
 import { resolvers } from "@/app/api/graphql/resolver";
 import dbConnect from "@/lib/mongodb";
 import { verifyToken, DecodedUser } from "@/lib/auth";
+import User from "@/app/api/graphql/models/User";
 import type { NextRequest } from "next/server";
 
 export interface GraphQLContext {
-  user: DecodedUser | null;
+  user: (DecodedUser & { permissions?: Record<string, string[]> }) | null;
   request: NextRequest;
 }
 
@@ -19,18 +20,33 @@ const server = new ApolloServer<GraphQLContext>({
 
 const handler = startServerAndCreateNextHandler<NextRequest, GraphQLContext>(server, {
   context: async (req) => {
-    // ✅ 'req' here is actually the NextRequest object itself
     const request = req as NextRequest;
 
     await dbConnect();
 
-    const authHeader = request.headers.get("authorization");
-    let user: DecodedUser | null = null;
+    // Extract user from cookie (same as auth resolvers)
+    const authToken = request.cookies.get("auth_token")?.value ?? "";
+    let user: (DecodedUser & { permissions?: Record<string, string[]> }) | null = null;
 
-    if (authHeader?.startsWith("Bearer ")) {
-      const token = authHeader.split(" ")[1];
+    if (authToken) {
       try {
-        user = verifyToken(token);
+        const decoded = verifyToken(authToken);
+        if (decoded) {
+          // Fetch full user data from database to get permissions
+          const dbUser = await User.findById(decoded.id).select('-password').lean();
+          if (dbUser && !Array.isArray(dbUser)) {
+            user = {
+              ...decoded,
+              permissions: (dbUser as any).permissions || {},
+            };
+            
+            console.log('=== CONTEXT USER DATA ===');
+            console.log('User ID:', user.id);
+            console.log('Username:', user.username);
+            console.log('Role:', user.role);
+            console.log('Permissions:', JSON.stringify(user.permissions, null, 2));
+          }
+        }
       } catch (err) {
         console.warn("Invalid or expired token:", err);
       }

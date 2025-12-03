@@ -6,6 +6,10 @@ export const ME_QUERY = gql`
 			_id
 			username
 			role
+			firstName
+			lastName
+			isActive
+			permissions
 		}
 	}
 `;

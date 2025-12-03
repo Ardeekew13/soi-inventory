@@ -29,9 +29,12 @@ const AddItemModal = (props: ItemModalProps) => {
 
 	const [addItem, { loading }] = useMutation<Mutation>(ADD_ITEM, {
 		onCompleted: (data) => {
-			messageApi.success(
-				`${record?.id ? "Item updated" : "Item added"} successfully`
-			);
+			let res = data?.addItem;
+			if (!res?.success) {
+				messageApi.error(res?.message);
+				return;
+			}
+			messageApi.success(res?.message);
 			refetch();
 			form.resetFields();
 			onClose();
@@ -48,7 +51,7 @@ const AddItemModal = (props: ItemModalProps) => {
 		try {
 			addItem({
 				variables: {
-					id: record?.id ?? null,
+					id: record?._id ?? null,
 					name: values.name,
 					unit: values.unit.toLowerCase(),
 					pricePerUnit: values.pricePerUnit,
@@ -69,14 +72,14 @@ const AddItemModal = (props: ItemModalProps) => {
 			loading={loading}
 			title={
 				<Typography.Title level={4}>
-					<Space align="center">{record?.id ? "Edit Item" : "Add Item"}</Space>
+					<Space align="center">{record?._id ? "Edit Item" : "Add Item"}</Space>
 				</Typography.Title>
 			}
 			footer={
 				<>
 					<Button onClick={() => handleCloseModal()}>Cancel</Button>
 					<Button type="primary" form="addItem" htmlType="submit">
-						{record?.id ? "Update" : "Add"}
+						{record?._id ? "Update" : "Add"}
 					</Button>
 				</>
 			}

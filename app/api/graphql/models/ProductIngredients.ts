@@ -3,12 +3,12 @@ import mongoose from "mongoose";
 const productIngredientSchema = new mongoose.Schema(
   {
     productId: {
-      type: mongoose.Schema.Types.UUID,
+      type: mongoose.Schema.Types.ObjectId,
       ref: "Product",
       required: true,
     },
     itemId: {
-      type: mongoose.Schema.Types.UUID,
+      type: mongoose.Schema.Types.ObjectId,
       ref: "Item",
       required: true,
     },

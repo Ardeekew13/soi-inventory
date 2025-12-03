@@ -15,3 +15,12 @@ export const LOGOUT_MUTATION = gql`
     logout
   }
 `;
+
+export const VERIFY_PASSWORD = gql`
+  mutation VerifyPassword($password: String!) {
+    verifyPassword(password: $password) {
+      success
+      message
+    }
+  }
+`;

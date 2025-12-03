@@ -1,40 +1,43 @@
-import { CartProduct } from "@/utils/helper";
+import { CartProduct, pesoFormatter } from "@/utils/helper";
 import { Button, InputNumber, Table, TableProps } from "antd";
 import { MessageInstance } from "antd/es/message/interface";
+import { useState } from "react";
+import RemoveItemConfirmModal from "./dialog/removeItemConfirmModal";
 
 interface IProps {
 	cart: CartProduct[];
 	setCart: React.Dispatch<React.SetStateAction<CartProduct[]>>;
 	messageApi: MessageInstance;
+	hasOrderNo: boolean; // Indicates if this is a loaded order
 }
 
 const PosListTable = (props: IProps) => {
-	const { cart, setCart, messageApi } = props;
+	const { cart, setCart, messageApi, hasOrderNo } = props;
+	const [removeModalOpen, setRemoveModalOpen] = useState(false);
+	const [itemToRemove, setItemToRemove] = useState<CartProduct | null>(null);
 
 	const handleRemoveToCart = (record: CartProduct) => {
-		setCart((prevCart) => prevCart.filter((item) => item.id !== record.id));
+		if (hasOrderNo) {
+			// If order is loaded, show password confirmation
+			setItemToRemove(record);
+			setRemoveModalOpen(true);
+		} else {
+			// Direct removal for new orders
+			setCart((prevCart) => prevCart.filter((item) => item?._id !== record?._id));
+		}
 	};
 
-	const handleDecrement = (id: number) => {
-		setCart((prevCart) =>
-			prevCart.map((item) =>
-				item.id === id ? { ...item, quantity: item.quantity - 1 } : item
-			)
-		);
+	const handleConfirmRemove = () => {
+		if (itemToRemove) {
+			setCart((prevCart) => prevCart.filter((item) => item?._id !== itemToRemove?._id));
+			setItemToRemove(null);
+		}
 	};
 
-	const handleIncrement = (id: number) => {
+	const handleQuantityChange = (id: string, value: number) => {
 		setCart((prevCart) =>
 			prevCart.map((item) =>
-				item.id === id ? { ...item, quantity: item.quantity - 1 } : item
-			)
-		);
-	};
-
-	const handleQuantityChange = (id: number, value: number) => {
-		setCart((prevCart) =>
-			prevCart.map((item) =>
-				item.id === id ? { ...item, quantity: value } : item
+				item?._id === id ? { ...item, quantity: value } : item
 			)
 		);
 	};
@@ -56,10 +59,10 @@ const PosListTable = (props: IProps) => {
 					<>
 						<InputNumber
 							min={1}
-							value={record.quantity}
+							value={record?.quantity}
 							style={{ width: 50 }}
 							onChange={(value) => {
-								handleQuantityChange(record?.id, value ?? 0);
+								handleQuantityChange(record?._id, value ?? 0);
 							}}
 						/>
 					</>
@@ -72,7 +75,7 @@ const PosListTable = (props: IProps) => {
 			key: "price",
 			align: "right",
 			width: "15%",
-			render: (pricePerUnit: number) => `₱${pricePerUnit.toFixed(2)}`,
+			render: (pricePerUnit: number) => pesoFormatter(pricePerUnit),
 		},
 		{
 			title: "Total Price",
@@ -82,9 +85,9 @@ const PosListTable = (props: IProps) => {
 			width: "15%",
 			render: (pricePerUnit: number, record: CartProduct) => {
 				return (
-					<span style={{ fontWeight: "bold" }}>{`₱${
-						pricePerUnit * record.quantity
-					}`}</span>
+					<span style={{ fontWeight: "bold" }}>
+						{pesoFormatter(pricePerUnit * (record?.quantity ?? 0))}
+					</span>
 				);
 			},
 		},
@@ -113,7 +116,7 @@ const PosListTable = (props: IProps) => {
 		<div className="full">
 			<Table
 				showHeader={false}
-				rowKey={(record: CartProduct) => record?.id.toString()}
+				rowKey={(record: CartProduct) => record?._id?.toString() ?? ''}
 				columns={column}
 				size="middle"
 				bordered={false}
@@ -122,6 +125,16 @@ const PosListTable = (props: IProps) => {
 				pagination={{
 					pageSize: 10,
 				}}
+			/>
+			<RemoveItemConfirmModal
+				open={removeModalOpen}
+				itemName={itemToRemove?.name || ""}
+				onClose={() => {
+					setRemoveModalOpen(false);
+					setItemToRemove(null);
+				}}
+				onConfirm={handleConfirmRemove}
+				messageApi={messageApi}
 			/>
 		</div>
 	);

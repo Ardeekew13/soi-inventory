@@ -4,7 +4,7 @@ import client from "@/lib/apollo-client";
 
 import "@ant-design/v5-patch-for-react-19";
 import { ApolloProvider } from "@apollo/client";
-import { ConfigProvider } from "antd";
+import { ConfigProvider, App } from "antd";
 import "antd/dist/reset.css";
 import enUS from "antd/es/locale/en_US";
 
@@ -14,8 +14,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en">
-      <body>
+    <html lang="en" suppressHydrationWarning>
+      <body suppressHydrationWarning>
         <ApolloProvider client={client}>
           <ConfigProvider
             locale={enUS}
@@ -29,7 +29,9 @@ export default function RootLayout({
               },
             }}
           >
-            <GlobalRefetchProvider>{children}</GlobalRefetchProvider>
+            <App>
+              <GlobalRefetchProvider>{children}</GlobalRefetchProvider>
+            </App>
           </ConfigProvider>
         </ApolloProvider>
       </body>

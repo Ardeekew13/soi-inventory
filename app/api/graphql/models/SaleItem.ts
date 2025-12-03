@@ -3,12 +3,12 @@ import mongoose from "mongoose";
 const saleItemSchema = new mongoose.Schema(
   {
     saleId: {
-      type: mongoose.Schema.Types.UUID,
+      type: mongoose.Schema.Types.ObjectId,
       ref: "Sale",
       required: true,
     },
     productId: {
-      type: mongoose.Schema.Types.UUID,
+      type: mongoose.Schema.Types.ObjectId,
       ref: "Product",
       required: true,
     },
@@ -19,6 +19,10 @@ const saleItemSchema = new mongoose.Schema(
     priceAtSale: {
       type: Number,
       required: true,
+    },
+    quantityPrinted: {
+      type: Number,
+      default: 0,
     },
   },
   {

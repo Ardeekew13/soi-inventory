@@ -2,8 +2,9 @@
 import AuthGuard from "@/component/auth/AuthGuard";
 import { Mutation } from "@/generated/graphql";
 import { LOGIN_MUTATION } from "@/graphql/login/login";
+import { ME_QUERY } from "@/graphql/auth/me";
 import logo from "@/public/soi-logo.png";
-import { useMutation } from "@apollo/client";
+import { useMutation, useApolloClient } from "@apollo/client";
 import { Button, Col, Form, Input, message, Row, Typography } from "antd";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
@@ -12,10 +13,28 @@ const LoginPage = () => {
   const [form] = Form.useForm();
   const [messageApi, contextHolder] = message.useMessage();
   const router = useRouter();
+  const apolloClient = useApolloClient();
   const [login, { loading }] = useMutation<Mutation>(LOGIN_MUTATION, {
-    onCompleted: (data) => {
+    onCompleted: async (data) => {
       if (data?.login?.success) {
         messageApi.success(data?.login?.message);
+        
+        // Clear any stale cache data and update with new user data
+        await apolloClient.resetStore();
+        
+        // Update Apollo cache with user data so Navbar shows immediately
+        if (data.login.user) {
+          apolloClient.writeQuery({
+            query: ME_QUERY,
+            data: {
+              me: {
+                ...data.login.user,
+                permissions: data.login.user.permissions || {},
+              },
+            },
+          });
+        }
+        
         router.push("/dashboard");
       } else {
         messageApi.error(data?.login?.message);
