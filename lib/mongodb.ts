@@ -1,16 +1,28 @@
 import mongoose from "mongoose";
 import { seedDefaultUser } from "./seedDefaultUser";
 
-const MONGODB_URI =
-  process.env.NODE_ENV === "development"
-    ? (process.env.MONGODB_URI_DEV as string)
-    : (process.env.MONGODB_URI_PROD as string);
+// Determine which MongoDB URI to use based on environment
+// Priority: VERCEL_ENV (set by Vercel) > NODE_ENV
+// - main branch (production) -> MONGODB_URI_PROD
+// - staging/other branches (preview) -> MONGODB_URI_DEV
+// - local development -> MONGODB_URI_DEV
+const isProduction = 
+  process.env.VERCEL_ENV === "production" || 
+  (process.env.NODE_ENV === "production" && !process.env.VERCEL_ENV);
+
+const MONGODB_URI = isProduction
+  ? (process.env.MONGODB_URI_PROD as string)
+  : (process.env.MONGODB_URI_DEV as string);
+
+const envType = isProduction ? "PROD" : "DEV";
 
 if (!MONGODB_URI) {
   throw new Error(
-    `⚠️ Please define the MONGODB_URI_${process.env.NODE_ENV} environment variable in .env.local`
+    `⚠️ Please define the MONGODB_URI_${envType} environment variable`
   );
 }
+
+console.log(`🔧 Using ${envType} MongoDB: ${MONGODB_URI.split('@')[1]?.split('/')[0] || 'localhost'}`);
 
 // Define a type for the cached object
 type MongooseCache = {
