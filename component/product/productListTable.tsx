@@ -19,10 +19,11 @@ interface IProps {
 	setSearch: React.Dispatch<React.SetStateAction<string>>;
 	search: string;
 	userPermissions?: Record<string, string[]>;
+	userRole?: string;
 }
 
 const ProductListTable = (props: IProps) => {
-	const { data, loading, refetch, openModal, messageApi, setSearch, search, userPermissions } =
+	const { data, loading, refetch, openModal, messageApi, setSearch, search, userPermissions, userRole } =
 		props;
 
 	const [deleteProduct, { loading: deleteLoading }] = useMutation<Mutation>(
@@ -77,7 +78,7 @@ const ProductListTable = (props: IProps) => {
 						<Button type="link" size="small" onClick={() => openModal(record)}>
 							View
 						</Button>
-						{hasPermission(userPermissions, 'product', 'delete') && (
+						{(userRole === 'SUPER_ADMIN' || hasPermission(userPermissions, 'product', 'delete')) && (
 							<Popconfirm
 								title="Delete Item"
 								description="Are you sure you want to delete this item?"

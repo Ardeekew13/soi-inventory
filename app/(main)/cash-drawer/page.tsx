@@ -276,7 +276,7 @@ const CashDrawerPage = () => {
       },
     },
   ];
-  console.log("Current Drawer:", currentDrawer);
+ 
   return (
     <div style={{ padding: 20 }}>
       {contextHolder}

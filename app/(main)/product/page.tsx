@@ -14,7 +14,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 
 const Product = () => {
 	// Permission guard - will redirect if no access
-	const { loading: permissionLoading, userPermissions } = usePermissionGuard({
+	const { loading: permissionLoading, userPermissions, userRole } = usePermissionGuard({
 		module: "product",
 		action: "view",
 	});
@@ -43,8 +43,9 @@ const Product = () => {
 			setSearch,
 			search,
 			userPermissions,
+			userRole,
 		}),
-		[data, loading, handleRefetch, openModal, messageApi, setSearch, search, userPermissions]
+		[data, loading, handleRefetch, openModal, messageApi, setSearch, search, userPermissions, userRole]
 	);
 	useEffect(() => {
 		if (triggerRefetch) {
@@ -67,7 +68,7 @@ const Product = () => {
 				/>
 			}
 			extra={
-				userPermissions?.product?.includes('addEdit') ? [
+				(userRole === 'SUPER_ADMIN' || userPermissions?.product?.includes('addEdit')) ? [
 					<Button key="1" type="primary" onClick={() => openModal()}>
 						Add Product
 					</Button>,

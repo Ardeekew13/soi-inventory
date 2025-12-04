@@ -29,10 +29,11 @@ interface IProps {
   setState: React.Dispatch<React.SetStateAction<CommonStateFilterI>>;
   state: CommonStateFilterI;
   userPermissions?: Record<string, string[]>;
+  userRole?: string;
 }
 
 const ItemListTable = (props: IProps) => {
-  const { data, loading, refetch, openModal, messageApi, state, setState, userPermissions } = props;
+  const { data, loading, refetch, openModal, messageApi, state, setState, userPermissions, userRole } = props;
   const warningItem = 20;
   const lowItem = 10;
   const [page, setPage] = useState(1);
@@ -116,7 +117,7 @@ const ItemListTable = (props: IProps) => {
             <Button type="link" size="small" onClick={() => openModal(record)}>
               View
             </Button>
-            {hasPermission(userPermissions, 'inventory', 'delete') && (
+            {(userRole === 'SUPER_ADMIN' || hasPermission(userPermissions, 'inventory', 'delete')) && (
               <Popconfirm
                 title="Delete Item"
                 description="Are you sure you want to delete this item?"

@@ -16,7 +16,7 @@ import { useEffect, useMemo, useState } from "react";
 
 const Inventory = () => {
 	// Permission guard - will redirect if no access
-	const { loading: permissionLoading, userPermissions } = usePermissionGuard({
+	const { loading: permissionLoading, userPermissions, userRole } = usePermissionGuard({
 		module: "inventory",
 		action: "view",
 	});
@@ -49,8 +49,9 @@ const Inventory = () => {
 			state,
 			setState,
 			userPermissions,
+			userRole,
 		}),
-		[data, loading, refetch, openModal, messageApi, state, setState, userPermissions]
+		[data, loading, refetch, openModal, messageApi, state, setState, userPermissions, userRole]
 	);
 
 	useEffect(() => {
@@ -73,7 +74,7 @@ const Inventory = () => {
 				/>
 			}
 			extra={
-				userPermissions?.inventory?.includes('addEdit') && (
+				(userRole === 'SUPER_ADMIN' || userPermissions?.inventory?.includes('addEdit')) && (
 					<Button key="1" type="primary" onClick={() => openModal()}>
 						Add Item
 					</Button>
