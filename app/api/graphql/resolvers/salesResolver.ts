@@ -781,7 +781,19 @@ export const salesResolver = {
 					return errorResponse("Invalid sale ID");
 				}
 
-				const sale = await Sale.findById(id);
+				const sale = await Sale.findById(id).populate({
+					path: 'saleItems',
+					populate: {
+						path: 'product',
+						populate: {
+							path: 'ingredientsUsed',
+							populate: {
+								path: 'item'
+							}
+						}
+					}
+				});
+
 				if (!sale) {
 					console.error("Sale not found:", id);
 					return errorResponse("Sale not found");
@@ -792,6 +804,27 @@ export const salesResolver = {
 					return errorResponse("Sale is already voided");
 				}
 
+				console.log("Returning ingredients to inventory");
+				// Return ingredients to inventory
+				for (const saleItem of sale.saleItems) {
+					const product = saleItem.product;
+					const quantitySold = saleItem.quantity;
+
+					// Return ingredients used
+					if (product.ingredientsUsed && product.ingredientsUsed.length > 0) {
+						for (const ingredient of product.ingredientsUsed) {
+							const quantityToReturn = ingredient.quantityUsed * quantitySold;
+							
+							// Update item quantity (return stock)
+							await Item.findByIdAndUpdate(ingredient.itemId, {
+								$inc: { quantity: quantityToReturn }
+							});
+
+							console.log(`Returned ${quantityToReturn} units of ${ingredient.item.name} to inventory`);
+						}
+					}
+				}
+
 				console.log("Updating sale to VOID status");
 				// Update sale status to VOID
 				const result = await Sale.findByIdAndUpdate(id, {
@@ -800,8 +833,8 @@ export const salesResolver = {
 					isDeleted: true,
 				});
 
-				console.log("Sale voided successfully:", result);
-				return successResponse("Sale voided successfully", null);
+				console.log("Sale voided successfully, ingredients returned to inventory");
+				return successResponse("Sale voided successfully and ingredients returned to inventory", null);
 			} catch (err: any) {
 				console.error("Error voiding sale:", err);
 				return errorResponse(err.message || "Failed to void sale");

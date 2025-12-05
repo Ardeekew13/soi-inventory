@@ -56,5 +56,11 @@ const handler = startServerAndCreateNextHandler<NextRequest, GraphQLContext>(ser
   },
 });
 
-export const GET = handler;
-export const POST = handler;
+// Export as async functions for Next.js 16 compatibility
+export async function GET(request: NextRequest) {
+  return handler(request);
+}
+
+export async function POST(request: NextRequest) {
+  return handler(request);
+}
