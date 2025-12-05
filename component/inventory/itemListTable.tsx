@@ -43,7 +43,16 @@ const ItemListTable = (props: IProps) => {
     {
       onCompleted: (data) => {
         if (data?.deleteItem?.success) {
-          messageApi.success("Item deleted successfully");
+          const message = data?.deleteItem?.message || "Item deleted successfully";
+          // Show warning if message contains product information
+          if (message.includes("removed from")) {
+            messageApi.warning({
+              content: message,
+              duration: 8, // Show longer for important warnings
+            });
+          } else {
+            messageApi.success(message);
+          }
           refetch();
         } else {
           messageApi.error(data?.deleteItem?.message);
@@ -120,7 +129,15 @@ const ItemListTable = (props: IProps) => {
             {(userRole === 'SUPER_ADMIN' || hasPermission(userPermissions, 'inventory', 'delete')) && (
               <Popconfirm
                 title="Delete Item"
-                description="Are you sure you want to delete this item?"
+                description={
+                  <>
+                    Are you sure you want to delete this item?
+                    <br />
+                    <span style={{ color: '#ff4d4f', fontSize: '12px' }}>
+                      This will remove the ingredient from all products that use it.
+                    </span>
+                  </>
+                }
                 onConfirm={() => handleDelete(record?._id)}
                 okText="Delete"
                 cancelText="Cancel"

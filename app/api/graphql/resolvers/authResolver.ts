@@ -5,6 +5,7 @@ import { GraphQLContext } from "../context";
 import User, { UserRole } from "../models/User";
 import ShiftSchedule from "../models/ShiftSchedule";
 import { successResponse, errorResponse } from "../utils/response";
+import { hasPermission } from "@/utils/permissions";
 
 export const authResolvers = {
   User: {
@@ -46,18 +47,31 @@ export const authResolvers = {
       }
 
       const currentUser = await User.findById(user.id);
-      
-      // Only SUPER_ADMIN and MANAGER can view all users
-      if (currentUser?.role !== UserRole.SUPER_ADMIN && currentUser?.role !== UserRole.MANAGER) {
-        throw new Error("Unauthorized - Only admins can view users");
+      if (!currentUser) {
+        throw new Error("User not found");
       }
 
+      // Check if user has permission to view other users
+      const canViewUsers = 
+        currentUser.role === UserRole.SUPER_ADMIN ||
+        hasPermission(currentUser.permissions, 'settings', 'view');
+
+      // If no permission, only return their own user data
+      if (!canViewUsers) {
+        return [{
+          ...currentUser.toObject(),
+          password: undefined, // Remove password
+          isActive: currentUser.isActive ?? true,
+          permissions: currentUser.permissions || {},
+        }];
+      }
+
+      // If has permission, return all users
       const users = await User.find().select("-password");
-      // Ensure isActive has a default value for all users
-      return users.map(user => ({
-        ...user.toObject(),
-        isActive: user.isActive ?? true,
-        permissions: user.permissions || {},
+      return users.map(u => ({
+        ...u.toObject(),
+        isActive: u.isActive ?? true,
+        permissions: u.permissions || {},
       }));
     },
 
@@ -212,7 +226,7 @@ export const authResolvers = {
         password: string; 
         role: UserRole; 
         firstName?: string; 
-        lastName?: string; 
+        lastName?: string;
         permissions?: any;
         shiftScheduleId?: string;
       },
@@ -278,10 +292,37 @@ export const authResolvers = {
         }
 
         const currentUser = await User.findById(user.id);
-        
-        // Only SUPER_ADMIN can update users
-        if (currentUser?.role !== UserRole.SUPER_ADMIN) {
-          return errorResponse("Unauthorized - Only super admin can update users");
+        if (!currentUser) {
+          return errorResponse("Current user not found");
+        }
+
+        const isUpdatingSelf = currentUser._id.toString() === id;
+        const canManageUsers = 
+          currentUser.role === UserRole.SUPER_ADMIN ||
+          hasPermission(currentUser.permissions, 'settings', 'manageUsers');
+
+        // Allow users to update their own password, firstName, lastName
+        if (isUpdatingSelf) {
+          const updateData: any = {};
+          if (password) updateData.password = await bcrypt.hash(password, 10);
+          if (firstName !== undefined) updateData.firstName = firstName || null;
+          if (lastName !== undefined) updateData.lastName = lastName || null;
+
+          const dbUser = await User.findByIdAndUpdate(id, { $set: updateData }, { new: true }).select("-password");
+          if (!dbUser) {
+            return errorResponse("User not found");
+          }
+
+          return successResponse("Profile updated successfully", {
+            ...dbUser.toObject(),
+            isActive: dbUser.isActive ?? true,
+            permissions: dbUser.permissions || {},
+          });
+        }
+
+        // Only users with permission can update other users
+        if (!canManageUsers) {
+          return errorResponse("Unauthorized - Insufficient permissions to update other users");
         }
 
         const updateData: any = {};

@@ -24,6 +24,7 @@ const UserDialog = ({ open, onClose, onSuccess, user, currentUserId, canManagePe
   const { message } = App.useApp();
   const apolloClient = useApolloClient();
   const isEditMode = !!user;
+  const isEditingSelf = user?._id === currentUserId;
 
   // Fetch shift schedules
   const { data: shiftSchedulesData } = useQuery(SHIFT_SCHEDULES_QUERY);
@@ -179,19 +180,21 @@ const UserDialog = ({ open, onClose, onSuccess, user, currentUserId, canManagePe
                       { min: 3, message: "Username must be at least 3 characters" },
                     ]}
                   >
-                    <Input placeholder="Enter username" />
+                    <Input placeholder="Enter username" disabled={isEditingSelf} />
                   </Form.Item>
-                  <Form.Item
-                    name="role"
-                    label="Role"
-                    rules={[{ required: true, message: "Please select a role" }]}
-                  >
-                    <Select placeholder="Select role" onChange={handleRoleChange}>
-                      <Select.Option value="SUPER_ADMIN">Super Admin</Select.Option>
-                      <Select.Option value="MANAGER">Manager</Select.Option>
-                      <Select.Option value="CASHIER">Cashier</Select.Option>
-                    </Select>
-                  </Form.Item>
+                  {!isEditingSelf && (
+                    <Form.Item
+                      name="role"
+                      label="Role"
+                      rules={[{ required: true, message: "Please select a role" }]}
+                    >
+                      <Select placeholder="Select role" onChange={handleRoleChange}>
+                        <Select.Option value="SUPER_ADMIN">Super Admin</Select.Option>
+                        <Select.Option value="MANAGER">Manager</Select.Option>
+                        <Select.Option value="CASHIER">Cashier</Select.Option>
+                      </Select>
+                    </Form.Item>
+                  )}
                   {!isEditMode && (
                     <Form.Item
                       name="password"
@@ -218,33 +221,37 @@ const UserDialog = ({ open, onClose, onSuccess, user, currentUserId, canManagePe
                   >
                     <Input placeholder="Enter last name (optional)" />
                   </Form.Item>
-                  <Form.Item
-                    name="shiftScheduleId"
-                    label="Shift Schedule"
-                    rules={[{ required: false }]}
-                  >
-                    <Select placeholder="Select shift schedule (optional)" allowClear>
-                      {shiftSchedules.map((schedule: any) => (
-                        <Select.Option key={schedule._id} value={schedule._id}>
-                          {schedule.name} ({schedule.shiftStartTime} - {schedule.shiftEndTime})
-                          {schedule.isDefault && <span style={{ color: '#1890ff', marginLeft: 8 }}>(Default)</span>}
-                        </Select.Option>
-                      ))}
-                    </Select>
-                  </Form.Item>
-                  {isEditMode && (
-                    <Form.Item
-                      name="isActive"
-                      label="Active Status"
-                      valuePropName="checked"
-                    >
-                      <Switch checkedChildren="Active" unCheckedChildren="Inactive" />
-                    </Form.Item>
+                  {!isEditingSelf && (
+                    <>
+                      <Form.Item
+                        name="shiftScheduleId"
+                        label="Shift Schedule"
+                        rules={[{ required: false }]}
+                      >
+                        <Select placeholder="Select shift schedule (optional)" allowClear>
+                          {shiftSchedules.map((schedule: any) => (
+                            <Select.Option key={schedule._id} value={schedule._id}>
+                              {schedule.name} ({schedule.shiftStartTime} - {schedule.shiftEndTime})
+                              {schedule.isDefault && <span style={{ color: '#1890ff', marginLeft: 8 }}>(Default)</span>}
+                            </Select.Option>
+                          ))}
+                        </Select>
+                      </Form.Item>
+                      {isEditMode && (
+                        <Form.Item
+                          name="isActive"
+                          label="Active Status"
+                          valuePropName="checked"
+                        >
+                          <Switch checkedChildren="Active" unCheckedChildren="Inactive" />
+                        </Form.Item>
+                      )}
+                    </>
                   )}
                 </>
               ),
             },
-            ...(canManagePermissions ? [{
+            ...((canManagePermissions && !isEditingSelf) ? [{
               key: "2",
               label: "Permissions",
               children: (

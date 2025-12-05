@@ -15,6 +15,11 @@ const cashTransactionSchema = new mongoose.Schema(
       type: String,
       required: false,
     },
+    userId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      required: false,
+    },
     saleId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Sale",
@@ -38,10 +43,24 @@ const cashDrawerSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
+    openedByUserId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      required: false,
+    },
     openedAt: {
       type: Date,
       required: true,
       default: Date.now,
+    },
+    closedBy: {
+      type: String,
+      required: false,
+    },
+    closedByUserId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      required: false,
     },
     closedAt: {
       type: Date,

@@ -128,27 +128,32 @@ const UserManagement = ({
       title: "Actions",
       key: "actions",
       align: "right",
-      render: (_: any, record: any) => (
-        <Space size="small">
-          <Button
-            type="link"
-            icon={<KeyOutlined />}
-            onClick={() => handleChangePassword(record)}
-            size="small"
-          >
-            Change Password
-          </Button>
-          {canManageUsers && (
-            <>
+      render: (_: any, record: any) => {
+        const isSelf = record._id === currentUserId;
+        return (
+          <Space size="small">
+            {/* Everyone can change their own password, or manage users can change others */}
+            {(isSelf || canManageUsers) && (
               <Button
                 type="link"
-                icon={<EditOutlined />}
-                onClick={() => handleEdit(record)}
+                icon={<KeyOutlined />}
+                onClick={() => handleChangePassword(record)}
                 size="small"
               >
-                Edit
+                Change Password
               </Button>
-              {record._id !== currentUserId && (
+            )}
+            {/* Only users with manageUsers permission can edit others */}
+            {canManageUsers && !isSelf && (
+              <>
+                <Button
+                  type="link"
+                  icon={<EditOutlined />}
+                  onClick={() => handleEdit(record)}
+                  size="small"
+                >
+                  Edit
+                </Button>
                 <Popconfirm
                   title="Delete user"
                   description="Are you sure you want to delete this user?"
@@ -165,11 +170,22 @@ const UserManagement = ({
                     Delete
                   </Button>
                 </Popconfirm>
-              )}
-            </>
-          )}
-        </Space>
-      ),
+              </>
+            )}
+            {/* Users can edit their own profile info */}
+            {isSelf && (
+              <Button
+                type="link"
+                icon={<EditOutlined />}
+                onClick={() => handleEdit(record)}
+                size="small"
+              >
+                Edit Profile
+              </Button>
+            )}
+          </Space>
+        );
+      },
     },
   ];
 

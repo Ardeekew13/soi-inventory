@@ -1,7 +1,20 @@
 import CashDrawer from "../models/CashDrawer";
+import User from "../models/User";
 import { successResponse, errorResponse } from "../utils/response";
 
 export const cashDrawerResolvers = {
+  CashTransaction: {
+    // Resolve user for each transaction
+    user: async (parent: any) => {
+      if (!parent.userId) return null;
+      try {
+        return await User.findById(parent.userId).select("-password");
+      } catch (error) {
+        return null;
+      }
+    },
+  },
+
   Query: {
     currentCashDrawer: async () => {
       try {
@@ -50,12 +63,14 @@ export const cashDrawerResolvers = {
 
 
         let openedBy = "Unknown";
+        let openedByUserId = null;
         const user = context.user;
         if (user) {
           // Try to get full name from DB
           const UserModel = require("../models/User").default;
-          const dbUser = await UserModel.findOne({ username: user.username });
+          const dbUser = await UserModel.findById(user.id);
           if (dbUser) {
+            openedByUserId = dbUser._id;
             if (dbUser.firstName || dbUser.lastName) {
               openedBy = `${dbUser.firstName || ""} ${dbUser.lastName || ""}`.trim();
             } else {
@@ -69,6 +84,7 @@ export const cashDrawerResolvers = {
         // Create new cash drawer
         const drawer = await CashDrawer.create({
           openedBy,
+          openedByUserId,
           openingBalance,
           status: "OPEN",
           transactions: [
@@ -76,6 +92,7 @@ export const cashDrawerResolvers = {
               type: "OPENING",
               amount: openingBalance,
               description: "Opening balance",
+              userId: openedByUserId,
             },
           ],
         });
@@ -108,6 +125,25 @@ export const cashDrawerResolvers = {
           return errorResponse("No open cash drawer found");
         }
 
+        // Get user info for closing
+        let closedBy = "Unknown";
+        let closedByUserId = null;
+        const user = context.user;
+        if (user) {
+          const UserModel = require("../models/User").default;
+          const dbUser = await UserModel.findById(user.id);
+          if (dbUser) {
+            closedByUserId = dbUser._id;
+            if (dbUser.firstName || dbUser.lastName) {
+              closedBy = `${dbUser.firstName || ""} ${dbUser.lastName || ""}`.trim();
+            } else {
+              closedBy = dbUser.username;
+            }
+          } else {
+            closedBy = user.username;
+          }
+        }
+
         // Calculate expected balance
         const totalCashIn = drawer.transactions
           .filter((t: any) => t.type === "CASH_IN" || t.type === "OPENING")
@@ -128,9 +164,12 @@ export const cashDrawerResolvers = {
           type: "CLOSING",
           amount: closingBalance,
           description: "Closing balance",
+          userId: closedByUserId,
         } as any);
 
         drawer.closedAt = new Date();
+        drawer.closedBy = closedBy;
+        drawer.closedByUserId = closedByUserId;
         drawer.closingBalance = closingBalance;
         drawer.expectedBalance = expectedBalance;
         drawer.status = "CLOSED";
@@ -168,10 +207,21 @@ export const cashDrawerResolvers = {
           return errorResponse("No open cash drawer found. Please open a drawer first.");
         }
 
+        // Get user info
+        let userId = null;
+        if (context.user) {
+          const UserModel = require("../models/User").default;
+          const dbUser = await UserModel.findById(context.user.id);
+          if (dbUser) {
+            userId = dbUser._id;
+          }
+        }
+
         drawer.transactions.push({
           type: "CASH_IN",
           amount,
           description,
+          userId,
         } as any);
 
         await drawer.save();
@@ -207,10 +257,21 @@ export const cashDrawerResolvers = {
           return errorResponse("No open cash drawer found. Please open a drawer first.");
         }
 
+        // Get user info
+        let userId = null;
+        if (context.user) {
+          const UserModel = require("../models/User").default;
+          const dbUser = await UserModel.findById(context.user.id);
+          if (dbUser) {
+            userId = dbUser._id;
+          }
+        }
+
         drawer.transactions.push({
           type: "CASH_OUT",
           amount,
           description,
+          userId,
         } as any);
 
         await drawer.save();
@@ -224,6 +285,25 @@ export const cashDrawerResolvers = {
   },
 
   CashDrawer: {
+    // Resolve user relations
+    openedByUser: async (parent: any) => {
+      if (!parent.openedByUserId) return null;
+      try {
+        return await User.findById(parent.openedByUserId).select("-password");
+      } catch (error) {
+        return null;
+      }
+    },
+    closedByUser: async (parent: any) => {
+      if (!parent.closedByUserId) return null;
+      try {
+        return await User.findById(parent.closedByUserId).select("-password");
+      } catch (error) {
+        return null;
+      }
+    },
+    
+    // Computed fields
     currentBalance: (parent: any) => {
       const totalCashIn = parent.transactions
         .filter((t: any) => t.type === "CASH_IN" || t.type === "OPENING")

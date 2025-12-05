@@ -27,6 +27,8 @@ export const cashDrawerTypeDefs = gql`
     type: TransactionType!
     amount: Float!
     description: String
+    userId: ID
+    user: User
     saleId: ID
     paymentMethod: PaymentMethod
     createdAt: String!
@@ -35,7 +37,12 @@ export const cashDrawerTypeDefs = gql`
   type CashDrawer {
     _id: ID!
     openedBy: String!
+    openedByUserId: ID
+    openedByUser: User
     openedAt: String!
+    closedBy: String
+    closedByUserId: ID
+    closedByUser: User
     closedAt: String
     openingBalance: Float!
     closingBalance: Float

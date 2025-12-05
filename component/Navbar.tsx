@@ -3,7 +3,7 @@ import { Mutation } from "@/generated/graphql";
 import { LOGOUT_MUTATION } from "@/graphql/login/login";
 import { ME_QUERY } from "@/graphql/auth/me";
 import logo from "@/public/soi-logo.png";
-import { CloseOutlined, LogoutOutlined } from "@ant-design/icons";
+import { CloseOutlined, LogoutOutlined, UserOutlined } from "@ant-design/icons";
 import { useMutation, useQuery, useApolloClient } from "@apollo/client";
 import { MenuOpenOutlined } from "@mui/icons-material";
 import GridViewOutlinedIcon from "@mui/icons-material/GridViewOutlined";
@@ -13,7 +13,8 @@ import ReceiptLongOutlinedIcon from "@mui/icons-material/ReceiptLongOutlined";
 import ShoppingBagOutlinedIcon from "@mui/icons-material/ShoppingBagOutlined";
 import SettingsOutlinedIcon from "@mui/icons-material/SettingsOutlined";
 import AccountBalanceWalletOutlinedIcon from "@mui/icons-material/AccountBalanceWalletOutlined";
-import { Flex, Layout, Menu, Typography } from "antd";
+import { Avatar, Button, Dropdown, Flex, Layout, Menu, Typography, Space } from "antd";
+import type { MenuProps } from "antd";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useMemo } from "react";
@@ -75,8 +76,9 @@ export default function NavbarLayout({
 	const { data: meData, loading: meLoading } = useQuery(ME_QUERY, {
 		fetchPolicy: 'cache-and-network',
 	});
-	const userPermissions = meData?.me?.permissions || {};
-	const userRole = meData?.me?.role;
+	const user = meData?.me;
+	const userPermissions = user?.permissions || {};
+	const userRole = user?.role;
 	const apolloClient = useApolloClient();
 
 	const items = useMemo(() => {
@@ -111,6 +113,16 @@ export default function NavbarLayout({
 		await apolloClient.clearStore();
 		router.push("/");
 	};
+
+	// User dropdown menu items
+	const userMenuItems: MenuProps['items'] = [
+		{
+			key: 'logout',
+			icon: <LogoutOutlined />,
+			label: 'Logout',
+			onClick: handleLogout,
+		},
+	];
 
 	const onMenuClick = ({ key }: { key: string }) => {
 		router.push(key);
@@ -186,28 +198,37 @@ export default function NavbarLayout({
 						onClick={onMenuClick}
 					/>
 
-					{/* Logout Button */}
+					{/* User Info & Logout */}
 					<div
 						style={{
 							position: "absolute",
 							bottom: 16,
 							left: 0,
 							right: 0,
-							textAlign: "center",
+							padding: "0 16px",
 						}}
 					>
 						<Flex
 							align="center"
-							justify="center"
+							gap={12}
 							style={{
-								padding: "8px 16px",
-								cursor: "pointer",
-								gap: 8,
+								padding: "12px 16px",
+								borderTop: "1px solid #f0f0f0",
 							}}
-							onClick={handleLogout}
 						>
-							<LogoutOutlined style={{ fontSize: 20 }} />
-							<Typography.Text strong>Logout</Typography.Text>
+							<Avatar icon={<UserOutlined />} />
+							<div style={{ flex: 1 }}>
+								<Typography.Text strong style={{ display: "block" }}>
+									{user?.firstName} {user?.lastName}
+								</Typography.Text>
+								<Typography.Text type="secondary" style={{ fontSize: 12 }}>
+									{user?.role?.replace('_', ' ')}
+								</Typography.Text>
+							</div>
+							<LogoutOutlined 
+								style={{ fontSize: 18, cursor: "pointer", color: "#ff4d4f" }}
+								onClick={handleLogout}
+							/>
 						</Flex>
 					</div>
 				</Sider>
@@ -238,9 +259,15 @@ export default function NavbarLayout({
 						onClick={onMenuClick}
 					/>
 
-					<Typography.Text onClick={handleLogout} style={{ cursor: "pointer" }}>
-						Logout
-					</Typography.Text>
+					{/* User Info & Logout */}
+					<Dropdown menu={{ items: userMenuItems }} placement="bottomRight">
+						<Space style={{ cursor: "pointer", marginLeft: 16 }}>
+							<Avatar icon={<UserOutlined />} />
+							<Typography.Text strong>
+								{user?.firstName} {user?.lastName}
+							</Typography.Text>
+						</Space>
+					</Dropdown>
 				</Header>
 			)}
 			<Content

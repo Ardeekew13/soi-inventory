@@ -141,17 +141,38 @@ export const itemResolvers = {
 			}
 
 			try {
-				// Soft delete: mark as inactive instead of deleting
-				const item = await Item.findByIdAndUpdate(_id, { isActive: false });
+				// Check if item exists
+				const item = await Item.findById(_id);
 				if (!item) {
 					return errorResponse("Item not found");
 				}
 				
-				// Also mark associated product ingredients as inactive
+				// Find products that use this ingredient
+				const productIngredients = await ProductIngredient.find({ 
+					itemId: _id,
+					isActive: true 
+				}).populate('productId');
+				
+				const affectedProducts = productIngredients
+					.filter(pi => pi.productId)
+					.map((pi: any) => pi.productId.name);
+				
+				// Soft delete: mark as inactive
+				await Item.findByIdAndUpdate(_id, { isActive: false });
+				
+				// Mark associated product ingredients as inactive (remove from products)
 				await ProductIngredient.updateMany(
 					{ itemId: _id },
 					{ isActive: false }
 				);
+				
+				// Return success with warning if products are affected
+				if (affectedProducts.length > 0) {
+					return successResponse(
+						`Item deleted. This ingredient was removed from ${affectedProducts.length} product(s): ${affectedProducts.join(', ')}`,
+						null
+					);
+				}
 				
 				return successResponse("Item deleted successfully", null);
 			} catch (err) {
