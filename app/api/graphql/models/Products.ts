@@ -32,7 +32,7 @@ productSchema.virtual("ingredientsUsed", {
 });
 
 // Indexes for performance
-productSchema.index({ name: 1 }); // Already unique, for name searches
+// Note: name already has unique index from schema definition
 productSchema.index({ isActive: 1 }); // For filtering active products
 productSchema.index({ createdAt: -1 }); // For sorting by date
 productSchema.index({ price: 1 }); // For price-based queries

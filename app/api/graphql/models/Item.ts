@@ -28,7 +28,7 @@ const itemSchema = new mongoose.Schema(
 );
 
 // Indexes for performance
-itemSchema.index({ name: 1 }); // Already unique, for name searches
+// Note: name already has unique index from schema definition
 itemSchema.index({ currentStock: 1 }); // For low stock queries
 itemSchema.index({ createdAt: -1 }); // For sorting by date
 

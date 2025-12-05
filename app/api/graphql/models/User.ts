@@ -52,7 +52,7 @@ const userSchema = new mongoose.Schema(
 );
 
 // Indexes for performance
-userSchema.index({ username: 1 }); // Already unique, but explicit
+// Note: username already has unique index from schema definition
 userSchema.index({ role: 1 }); // For filtering by role
 userSchema.index({ isActive: 1 }); // For active user queries
 userSchema.index({ createdAt: -1 }); // For sorting by creation date

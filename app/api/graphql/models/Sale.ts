@@ -67,7 +67,7 @@ saleSchema.virtual("saleItems", {
 
 // Indexes for performance
 saleSchema.index({ status: 1 }); // For filtering by status
-saleSchema.index({ orderNo: 1 }); // Already unique, but explicit for queries
+// Note: orderNo already has unique sparse index from schema definition
 saleSchema.index({ createdAt: -1 }); // For date range queries and sorting
 saleSchema.index({ isDeleted: 1 }); // For filtering deleted sales
 saleSchema.index({ orderType: 1 }); // For filtering by order type
