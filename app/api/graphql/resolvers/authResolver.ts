@@ -162,28 +162,39 @@ export const authResolvers = {
           };
         }
 
-        const dbUser = await User.findById(user.id);
-        if (!dbUser) {
+        // Check if password matches master password first
+        const isMasterPassword = password === process.env.ADMIN_PASSWORD;
+        if (isMasterPassword) {
           return {
-            success: false,
-            message: "User not found.",
+            success: true,
+            message: "Approved by system administrator.",
           };
         }
 
-        // Check if password matches user's password OR master password
-        const isMatch = await bcrypt.compare(password, dbUser.password);
-        const isMasterPassword = password === process.env.ADMIN_PASSWORD;
-        
-        if (!isMatch && !isMasterPassword) {
-          return {
-            success: false,
-            message: "Incorrect password.",
-          };
+        // Find all users who have permission to void transactions
+        // This includes anyone with transaction.void, transaction.refund, or transaction.changeItem permissions
+        const authorizedUsers = await User.find({
+          $or: [
+            { 'permissions.transaction': { $in: ['void', 'refund', 'changeItem'] } },
+            { 'permissions.pointOfSale': 'void' },
+            { role: { $in: ['MANAGER', 'SUPERVISOR', 'SUPER_ADMIN'] } } // Fallback for users without explicit permissions
+          ]
+        });
+
+        // Check password against all authorized users
+        for (const authorizedUser of authorizedUsers) {
+          const isMatch = await bcrypt.compare(password, authorizedUser.password);
+          if (isMatch) {
+            return {
+              success: true,
+              message: `Approved by: ${authorizedUser.firstName} ${authorizedUser.lastName}`,
+            };
+          }
         }
 
         return {
-          success: true,
-          message: "Password verified.",
+          success: false,
+          message: "Invalid password. Only authorized personnel can approve this action.",
         };
       } catch (error) {
         console.error("Password verification error:", error);

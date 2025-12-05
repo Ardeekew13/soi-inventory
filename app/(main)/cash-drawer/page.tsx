@@ -471,6 +471,7 @@ const CashDrawerPage = () => {
                 icon={<PlusCircleOutlined />}
                 onClick={() => setShowCashInModal(true)}
                 size="large"
+                disabled={!userPermissions?.cashDrawer?.includes("cashIn")}
               >
                 Add Cash In
               </Button>
@@ -479,6 +480,7 @@ const CashDrawerPage = () => {
                 icon={<MinusCircleOutlined />}
                 onClick={() => setShowCashOutModal(true)}
                 size="large"
+                disabled={!userPermissions?.cashDrawer?.includes("cashOut")}
               >
                 Add Cash Out
               </Button>
@@ -488,6 +490,7 @@ const CashDrawerPage = () => {
                 icon={<CloseCircleOutlined />}
                 onClick={() => setShowCloseModal(true)}
                 size="large"
+                disabled={!userPermissions?.cashDrawer?.includes("openClose")}
               >
                 Close Drawer
               </Button>

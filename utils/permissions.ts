@@ -9,7 +9,8 @@ export type PermissionAction =
   | 'changeItem'
   | 'refund'
   | 'openClose'
-  | 'cashInOut'
+  | 'cashIn'
+  | 'cashOut'
   | 'manageUsers'
   | 'managePermissions';
 
@@ -74,7 +75,8 @@ export const PERMISSION_MODULES: ModulePermission[] = [
     actions: [
       { key: 'view', label: 'View Cash Drawer', description: 'View cash drawer status and history' },
       { key: 'openClose', label: 'Open/Close Drawer', description: 'Open and close cash drawer' },
-      { key: 'cashInOut', label: 'Cash In/Out', description: 'Add cash in or cash out' },
+      { key: 'cashIn', label: 'Cash In', description: 'Add cash into drawer' },
+      { key: 'cashOut', label: 'Cash Out', description: 'Remove cash from drawer (manager only)' },
     ],
   },
   {

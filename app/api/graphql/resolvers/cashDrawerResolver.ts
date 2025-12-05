@@ -144,8 +144,24 @@ export const cashDrawerResolvers = {
       }
     },
 
-    addCashIn: async (_: unknown, { amount, description }: { amount: number; description: string }) => {
+    addCashIn: async (_: unknown, { amount, description }: { amount: number; description: string }, context: any) => {
       try {
+        // Check authentication
+        if (!context.user) {
+          return errorResponse("Not authenticated");
+        }
+
+        // Check permissions
+        const userPermissions = context.user.permissions || {};
+        const userRole = context.user.role;
+
+        if (
+          userRole !== "SUPER_ADMIN" &&
+          !userPermissions.cashDrawer?.includes("cashIn")
+        ) {
+          return errorResponse("Insufficient permissions to add cash in");
+        }
+
         const drawer = await CashDrawer.findOne({ status: "OPEN" }).sort({ openedAt: -1 });
         
         if (!drawer) {
@@ -167,8 +183,24 @@ export const cashDrawerResolvers = {
       }
     },
 
-    addCashOut: async (_: unknown, { amount, description }: { amount: number; description: string }) => {
+    addCashOut: async (_: unknown, { amount, description }: { amount: number; description: string }, context: any) => {
       try {
+        // Check authentication
+        if (!context.user) {
+          return errorResponse("Not authenticated");
+        }
+
+        // Check permissions - Only managers can cash out
+        const userPermissions = context.user.permissions || {};
+        const userRole = context.user.role;
+
+        if (
+          userRole !== "SUPER_ADMIN" &&
+          !userPermissions.cashDrawer?.includes("cashOut")
+        ) {
+          return errorResponse("Insufficient permissions. Only managers can perform cash out.");
+        }
+
         const drawer = await CashDrawer.findOne({ status: "OPEN" }).sort({ openedAt: -1 });
         
         if (!drawer) {

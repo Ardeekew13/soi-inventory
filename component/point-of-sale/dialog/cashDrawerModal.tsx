@@ -32,6 +32,9 @@ import {
 } from "@/graphql/cash-drawer/cash-drawer";
 import { pesoFormatter } from "@/utils/helper";
 import dayjs from "dayjs";
+import { ME_QUERY } from "@/graphql/auth/me";
+import { Query } from "@/generated/graphql";
+import { hasPermission } from "@/utils/permissions";
 
 interface CashDrawerModalProps {
   open: boolean;
@@ -40,6 +43,16 @@ interface CashDrawerModalProps {
 
 const CashDrawerModal = ({ open, onClose }: CashDrawerModalProps) => {
   const [messageApi, contextHolder] = message.useMessage();
+  
+  // Get user permissions
+  const { data: meData } = useQuery<Query>(ME_QUERY);
+  const userPermissions = meData?.me?.permissions;
+  const userRole = meData?.me?.role;
+  
+  // Check permissions - SUPER_ADMIN has all permissions
+  const canCashIn = userRole === 'SUPER_ADMIN' || hasPermission(userPermissions, 'cashDrawer', 'cashIn');
+  const canCashOut = userRole === 'SUPER_ADMIN' || hasPermission(userPermissions, 'cashDrawer', 'cashOut');
+  
   const [openingBalance, setOpeningBalance] = useState<number>(0);
   const [closingBalance, setClosingBalance] = useState<number>(0);
   const [cashInAmount, setCashInAmount] = useState<number>(0);
@@ -274,18 +287,22 @@ const CashDrawerModal = ({ open, onClose }: CashDrawerModalProps) => {
 
             {/* Action Buttons */}
             <Space style={{ width: "100%" }}>
-              <Button
-                icon={<PlusCircleOutlined />}
-                onClick={() => setShowCashIn(true)}
-              >
-                Cash In
-              </Button>
-              <Button
-                icon={<MinusCircleOutlined />}
-                onClick={() => setShowCashOut(true)}
-              >
-                Cash Out
-              </Button>
+              {canCashIn && (
+                <Button
+                  icon={<PlusCircleOutlined />}
+                  onClick={() => setShowCashIn(true)}
+                >
+                  Cash In
+                </Button>
+              )}
+              {canCashOut && (
+                <Button
+                  icon={<MinusCircleOutlined />}
+                  onClick={() => setShowCashOut(true)}
+                >
+                  Cash Out
+                </Button>
+              )}
               <Button
                 danger
                 icon={<CloseCircleOutlined />}
