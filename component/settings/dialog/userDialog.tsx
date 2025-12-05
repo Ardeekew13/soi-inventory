@@ -16,9 +16,10 @@ interface UserDialogProps {
   onSuccess: () => void;
   user?: any; // If user exists, it's edit mode. If null/undefined, it's add mode
   currentUserId?: string; // ID of the currently logged-in user
+  canManagePermissions?: boolean; // Can this user manage permissions?
 }
 
-const UserDialog = ({ open, onClose, onSuccess, user, currentUserId }: UserDialogProps) => {
+const UserDialog = ({ open, onClose, onSuccess, user, currentUserId, canManagePermissions = false }: UserDialogProps) => {
   const [form] = Form.useForm();
   const { message } = App.useApp();
   const apolloClient = useApolloClient();
@@ -243,7 +244,7 @@ const UserDialog = ({ open, onClose, onSuccess, user, currentUserId }: UserDialo
                 </>
               ),
             },
-            {
+            ...(canManagePermissions ? [{
               key: "2",
               label: "Permissions",
               children: (
@@ -302,7 +303,7 @@ const UserDialog = ({ open, onClose, onSuccess, user, currentUserId }: UserDialo
                   />
                 </>
               ),
-            },
+            }] : []),
           ]}
         />
       </Form>

@@ -26,9 +26,11 @@ import { StyledDiv } from "../style";
 const UserManagement = ({
   currentUserRole,
   currentUserId,
+  userPermissions,
 }: {
   currentUserRole: string;
   currentUserId: string;
+  userPermissions?: Record<string, string[]>;
 }) => {
   const { message } = App.useApp();
   const [isUserDialogOpen, setIsUserDialogOpen] = useState(false);
@@ -39,8 +41,15 @@ const UserManagement = ({
   const { data, loading, refetch } = useQuery(USERS_QUERY);
   const [deleteUser] = useMutation(DELETE_USER_MUTATION);
 
+  // Check if user can manage users (create/edit/delete)
   const canManageUsers =
-    currentUserRole === "SUPER_ADMIN" || currentUserRole === "MANAGER";
+    currentUserRole === "SUPER_ADMIN" || 
+    userPermissions?.settings?.includes('manageUsers');
+  
+  // Check if user can manage permissions
+  const canManagePermissions =
+    currentUserRole === "SUPER_ADMIN" || 
+    userPermissions?.settings?.includes('managePermissions');
 
   const handleDelete = async (id: string) => {
     try {
@@ -213,6 +222,7 @@ const UserManagement = ({
           }}
           user={selectedUser}
           currentUserId={currentUserId}
+          canManagePermissions={canManagePermissions}
         />
       )}
 

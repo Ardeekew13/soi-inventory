@@ -10,7 +10,8 @@ export type PermissionAction =
   | 'refund'
   | 'openClose'
   | 'cashInOut'
-  | 'manageUsers';
+  | 'manageUsers'
+  | 'managePermissions';
 
 export interface ModulePermission {
   key: string;
@@ -100,6 +101,7 @@ export const PERMISSION_MODULES: ModulePermission[] = [
     actions: [
       { key: 'view', label: 'View Settings', description: 'Access settings page' },
       { key: 'manageUsers', label: 'Manage Users', description: 'Create, edit, and delete users' },
+      { key: 'managePermissions', label: 'Manage Permissions', description: 'Assign and modify user permissions' },
     ],
   },
 ];

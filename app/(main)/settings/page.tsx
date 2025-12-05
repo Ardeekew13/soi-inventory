@@ -127,6 +127,7 @@ const Settings = () => {
         <UserManagement 
           currentUserRole={userRole || ""}
           currentUserId={user?._id || ""}
+          userPermissions={userPermissions}
         />
       ),
     };
