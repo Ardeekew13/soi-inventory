@@ -1,5 +1,6 @@
 import { message } from "antd";
 import Item from "../models/Item";
+import ProductIngredient from "../models/ProductIngredients";
 import { applyPaginationArgs, PaginationListArgs } from "../utils/pagination";
 import { errorResponse, successResponse } from "../utils/response";
 import { update } from "lodash";
@@ -28,8 +29,8 @@ export const itemResolvers = {
 
 			const { limit, skip } = applyPaginationArgs(args);
 			const filter = args.search
-				? { name: { $regex: args.search, $options: "i" } }
-				: {};
+				? { name: { $regex: args.search, $options: "i" }, isActive: true }
+				: { isActive: true };
 			const [items, totalCount] = await Promise.all([
 				Item.find(filter).limit(limit).skip(skip),
 				Item.countDocuments(filter),
@@ -140,10 +141,18 @@ export const itemResolvers = {
 			}
 
 			try {
-				const item = await Item.findByIdAndDelete(_id);
+				// Soft delete: mark as inactive instead of deleting
+				const item = await Item.findByIdAndUpdate(_id, { isActive: false });
 				if (!item) {
 					return errorResponse("Item not found");
 				}
+				
+				// Also mark associated product ingredients as inactive
+				await ProductIngredient.updateMany(
+					{ itemId: _id },
+					{ isActive: false }
+				);
+				
 				return successResponse("Item deleted successfully", null);
 			} catch (err) {
 				console.error("deleteItem error:", err);

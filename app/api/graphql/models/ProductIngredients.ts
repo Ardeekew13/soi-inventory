@@ -16,6 +16,10 @@ const productIngredientSchema = new mongoose.Schema(
       type: Number,
       required: true,
     },
+    isActive: {
+      type: Boolean,
+      default: true,
+    },
   },
   {
     timestamps: true,
@@ -24,6 +28,7 @@ const productIngredientSchema = new mongoose.Schema(
 
 // Equivalent of @@unique([productId, itemId])
 productIngredientSchema.index({ productId: 1, itemId: 1 }, { unique: true });
+productIngredientSchema.index({ isActive: 1 }); // For filtering active ingredients
 
 const ProductIngredient =
   mongoose.models.ProductIngredient ||

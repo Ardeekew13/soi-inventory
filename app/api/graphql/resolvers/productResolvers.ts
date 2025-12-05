@@ -29,17 +29,19 @@ export const productResolvers = {
 
       const { limit, skip } = applyPaginationArgs(args);
       const filter = args.search
-        ? { name: { $regex: args.search, $options: "i" } }
-        : {};
+        ? { name: { $regex: args.search, $options: "i" }, isActive: true }
+        : { isActive: true };
       const [products, totalCount] = await Promise.all([
         Product.find(filter)
           .limit(limit)
           .skip(skip)
           .populate({
             path: "ingredientsUsed",
+            match: { isActive: true }, // Only populate active ingredients
             populate: {
               path: "itemId",
               model: "Item",
+              match: { isActive: true }, // Only populate active items
             },
           }),
         Product.countDocuments(filter),
@@ -94,14 +96,17 @@ export const productResolvers = {
       // Extract unique product IDs
       const productIds = [...new Set(productIngredients.map(pi => pi.productId.toString()))];
 
-      // Find all products with these IDs
+      // Find all products with these IDs (only active products)
       const products = await Product.find({
         _id: { $in: productIds },
+        isActive: true,
       }).populate({
         path: "ingredientsUsed",
+        match: { isActive: true }, // Only populate active ingredients
         populate: {
           path: "itemId",
           model: "Item",
+          match: { isActive: true }, // Only populate active items
         },
       });
 
@@ -350,10 +355,15 @@ export const productResolvers = {
           return errorResponse("Product not found");
         }
 
-        // Delete product and associated ingredients
-        // No inventory adjustment - ingredients are only deducted when products are sold
-        await Product.findByIdAndDelete(id);
-        await ProductIngredient.deleteMany({ productId: id });
+        // Soft delete: mark as inactive instead of deleting
+        // This preserves historical data and prevents breaking references in parked sales
+        await Product.findByIdAndUpdate(id, { isActive: false });
+        
+        // Also mark associated ingredients as inactive (soft delete)
+        await ProductIngredient.updateMany(
+          { productId: id },
+          { isActive: false }
+        );
 
         return successResponse("Product deleted successfully", null);
       } catch (err) {

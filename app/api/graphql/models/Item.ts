@@ -21,6 +21,10 @@ const itemSchema = new mongoose.Schema(
 			required: true,
 			default: 0,
 		},
+		isActive: {
+			type: Boolean,
+			default: true,
+		},
 	},
 	{
 		timestamps: true,
@@ -31,6 +35,7 @@ const itemSchema = new mongoose.Schema(
 // Note: name already has unique index from schema definition
 itemSchema.index({ currentStock: 1 }); // For low stock queries
 itemSchema.index({ createdAt: -1 }); // For sorting by date
+itemSchema.index({ isActive: 1 }); // For filtering active items
 
 const Item = mongoose.models.Item || mongoose.model("Item", itemSchema);
 export default Item;
