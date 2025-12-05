@@ -93,7 +93,7 @@ const ParkedOrdersDrawer = ({
                 {parked.saleItems?.map((item: any, idx: number) => (
                   <Flex key={idx} justify="space-between">
                     <Typography.Text>
-                      {item.product.name} x{item.quantity}
+                      {item.product?.name || "(Deleted Product)"} x{item.quantity}
                     </Typography.Text>
                     <Typography.Text>
                       ₱{(item.priceAtSale * item.quantity).toFixed(2)}
