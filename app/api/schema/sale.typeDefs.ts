@@ -86,5 +86,6 @@ export const saleTypeDefs = gql`
     recordSale(items: [SaleItemInput!]!): SaleResponse!
     voidSale(id: ID!, voidReason: String!): DeletionResult!
     deleteParkedSale(id: ID!): DeletionResult!
+    changeItem(saleId: ID!, saleItemId: ID!, newProductId: ID!, newQuantity: Float!): DeletionResult!
   }
 `;

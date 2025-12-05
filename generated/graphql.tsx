@@ -203,6 +203,7 @@ export type Mutation = {
   addCashOut: CashDrawerResponse;
   addItem: ItemResultResponse;
   addProduct: ProductMutationResponse;
+  changeItem: DeletionResult;
   checkoutSale: SaleResponse;
   closeCashDrawer: CashDrawerResponse;
   createDiscount: DeletionResult;
@@ -258,6 +259,14 @@ export type MutationAddProductArgs = {
   items: Array<ProductIngredientInput>;
   name: Scalars['String']['input'];
   price: Scalars['Float']['input'];
+};
+
+
+export type MutationChangeItemArgs = {
+  newProductId: Scalars['ID']['input'];
+  newQuantity: Scalars['Float']['input'];
+  saleId: Scalars['ID']['input'];
+  saleItemId: Scalars['ID']['input'];
 };
 
 
@@ -479,6 +488,7 @@ export type Query = {
   myCurrentShift?: Maybe<EmployeeShift>;
   myShiftHistory: Array<EmployeeShift>;
   parkedSales: Array<Sale>;
+  productsByIngredient: Array<Product>;
   productsList: ProductResponse;
   saleReport?: Maybe<SaleReportGroup>;
   sales: Array<Sale>;
@@ -523,6 +533,11 @@ export type QueryMyShiftHistoryArgs = {
 };
 
 
+export type QueryProductsByIngredientArgs = {
+  itemId: Scalars['ID']['input'];
+};
+
+
 export type QueryProductsListArgs = {
   limit?: InputMaybe<Scalars['Int']['input']>;
   search?: InputMaybe<Scalars['String']['input']>;
@@ -564,7 +579,7 @@ export type QueryUserArgs = {
 export type RecordShiftEventInput = {
   eventType: ShiftEventType;
   notes?: InputMaybe<Scalars['String']['input']>;
-  photo: Scalars['String']['input'];
+  photo?: InputMaybe<Scalars['String']['input']>;
 };
 
 export type Sale = {
@@ -648,7 +663,7 @@ export type ShiftEvent = {
   _id: Scalars['ID']['output'];
   eventType: ShiftEventType;
   notes?: Maybe<Scalars['String']['output']>;
-  photo: Scalars['String']['output'];
+  photo?: Maybe<Scalars['String']['output']>;
   timestamp: Scalars['String']['output'];
 };
 

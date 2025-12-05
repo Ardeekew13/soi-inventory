@@ -65,6 +65,66 @@ export const productResolvers = {
 
       return { products: formattedProducts, totalCount };
     },
+    productsByIngredient: async (
+      _: unknown,
+      { itemId }: { itemId: string },
+      context: any
+    ) => {
+      // Check authentication
+      if (!context.user) {
+        throw new Error("Authentication required");
+      }
+
+      // Check permissions
+      const userPermissions = context.user.permissions || {};
+      const userRole = context.user.role;
+
+      if (
+        userRole !== "SUPER_ADMIN" &&
+        !userPermissions.product?.includes("view")
+      ) {
+        throw new Error("Insufficient permissions to view products");
+      }
+
+      // Find all product ingredients that use this item
+      const productIngredients = await ProductIngredient.find({
+        itemId: itemId,
+      }).select("productId");
+
+      // Extract unique product IDs
+      const productIds = [...new Set(productIngredients.map(pi => pi.productId.toString()))];
+
+      // Find all products with these IDs
+      const products = await Product.find({
+        _id: { $in: productIds },
+      }).populate({
+        path: "ingredientsUsed",
+        populate: {
+          path: "itemId",
+          model: "Item",
+        },
+      });
+
+      const formattedProducts = products.map((product) => {
+        const productObj = product.toObject();
+        return {
+          ...productObj,
+          createdAt: new Date(product.createdAt).toISOString(),
+          updatedAt: new Date(product.updatedAt).toISOString(),
+          ingredientsUsed: (productObj.ingredientsUsed || []).map(
+            (ing: any) => ({
+              _id: ing._id,
+              productId: ing.productId,
+              itemId: ing.itemId?._id || ing.itemId,
+              quantityUsed: ing.quantityUsed,
+              item: ing.itemId,
+            })
+          ),
+        };
+      });
+
+      return formattedProducts;
+    },
   },
   Product: {
     id: (parent: any) => parent._id.toString(),

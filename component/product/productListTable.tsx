@@ -1,13 +1,16 @@
 "use client";
-import { Mutation, Product } from "@/generated/graphql";
+import { Mutation, Product, Query } from "@/generated/graphql";
 import { DELETE_PRODUCT } from "@/graphql/inventory/products";
+import { GET_PRODUCTS_BY_INGREDIENT } from "@/graphql/inventory/productsByIngredient";
+import { GET_ITEMS } from "@/graphql/inventory/items";
 import { pesoFormatter } from "@/utils/helper";
 import { hasPermission } from "@/utils/permissions";
-import { DeleteOutlined } from "@ant-design/icons";
-import { useMutation } from "@apollo/client";
-import { Button, Input, Popconfirm, Space, Table } from "antd";
+import { DeleteOutlined, FilterOutlined } from "@ant-design/icons";
+import { useLazyQuery, useMutation, useQuery } from "@apollo/client";
+import { Button, Input, Popconfirm, Select, Space, Table } from "antd";
 import { MessageInstance } from "antd/es/message/interface";
 import { TableProps } from "antd/lib";
+import { useState } from "react";
 import { StyledDiv } from "../style";
 
 interface IProps {
@@ -25,6 +28,38 @@ interface IProps {
 const ProductListTable = (props: IProps) => {
 	const { data, loading, refetch, openModal, messageApi, setSearch, search, userPermissions, userRole } =
 		props;
+	
+	const [selectedIngredient, setSelectedIngredient] = useState<string | null>(null);
+	const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
+
+	// Get all items for the dropdown
+	const { data: itemsData } = useQuery<Query>(GET_ITEMS, {
+		variables: { search: "", limit: 1000, skip: 0 },
+	});
+
+	// Lazy query for filtering by ingredient
+	const [getProductsByIngredient, { loading: filterLoading }] = useLazyQuery<Query>(
+		GET_PRODUCTS_BY_INGREDIENT,
+		{
+			onCompleted: (data) => {
+				setFilteredProducts(data?.productsByIngredient as Product[] || []);
+			},
+			onError: (error) => {
+				messageApi.error(`Error filtering products: ${error.message}`);
+			},
+		}
+	);
+
+	const handleIngredientFilter = (itemId: string | null) => {
+		setSelectedIngredient(itemId);
+		if (itemId) {
+			getProductsByIngredient({ variables: { itemId } });
+		} else {
+			setFilteredProducts([]);
+		}
+	};
+
+	const displayData = selectedIngredient ? filteredProducts : data;
 
 	const [deleteProduct, { loading: deleteLoading }] = useMutation<Mutation>(
 		DELETE_PRODUCT,
@@ -97,19 +132,40 @@ const ProductListTable = (props: IProps) => {
 
 	return (
 		<div className="w-full">
-			<Input.Search
-				placeholder="Search"
-				onSearch={setSearch}
-				enterButton
-				allowClear
-				defaultValue={search}
-			/>
+			<Space style={{ marginBottom: 16, width: "100%", justifyContent: "space-between" }}>
+				<Input.Search
+					placeholder="Search products"
+					onSearch={setSearch}
+					enterButton
+					allowClear
+					defaultValue={search}
+					style={{ width: 400 }}
+				/>
+				<Space>
+					<FilterOutlined />
+					<Select
+						placeholder="Filter by ingredient"
+						allowClear
+						showSearch
+						style={{ width: 300 }}
+						value={selectedIngredient}
+						onChange={handleIngredientFilter}
+						filterOption={(input, option) =>
+							(option?.label ?? "").toLowerCase().includes(input.toLowerCase())
+						}
+						options={itemsData?.itemsList?.items?.map((item: any) => ({
+							label: item.name,
+							value: item._id,
+						})) || []}
+					/>
+				</Space>
+			</Space>
 			<StyledDiv>
 				<Table
 					rowKey={(record: Product) => record?._id}
 					columns={columns}
-					loading={loading || deleteLoading}
-					dataSource={data ?? ([] as Product[])}
+					loading={loading || deleteLoading || filterLoading}
+					dataSource={displayData ?? ([] as Product[])}
 					size="small"
 					scroll={{ x: 800 }}
 				/>

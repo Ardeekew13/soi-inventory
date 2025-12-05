@@ -241,7 +241,7 @@ export const salesResolver = {
 			console.log('✅ Permission granted');
 
 			try {
-				// Build date filter
+				// Build date filter - Only include COMPLETED sales (exclude VOID, PARKED)
 				const dateFilter: any = { status: "COMPLETED" };
 				
 				if (startDate && endDate) {
@@ -251,7 +251,7 @@ export const salesResolver = {
 					};
 				}
 
-				// Get sales for the specified period
+				// Get sales for the specified period (COMPLETED only)
 				const sales = await Sale.find(dateFilter);
 				
 				// Calculate current period totals
@@ -931,5 +931,174 @@ export const salesResolver = {
 				return errorResponse(err.message || "Failed to record sale");
 			}
 		},
+
+		changeItem: async (
+			_: unknown,
+			{
+				saleId,
+				saleItemId,
+				newProductId,
+				newQuantity,
+			}: {
+				saleId: string;
+				saleItemId: string;
+				newProductId: string;
+				newQuantity: number;
+			},
+			context: any
+		) => {
+			// Check authentication
+			if (!context.user) {
+				throw new Error("Authentication required");
+			}
+
+			// Check permissions
+			const userPermissions = context.user.permissions || {};
+			const userRole = context.user.role;
+
+			if (
+				userRole !== "SUPER_ADMIN" &&
+				!userPermissions.transaction?.includes("addEdit")
+			) {
+				throw new Error("Insufficient permissions to change items");
+			}
+
+			try {
+				// Get the sale and verify it's completed
+				const sale = await Sale.findById(saleId);
+				if (!sale) {
+					return errorResponse("Sale not found");
+				}
+
+				if (sale.status !== "COMPLETED") {
+					return errorResponse("Can only change items in completed sales");
+				}
+
+				// Get the original sale item
+				const originalSaleItem = await SaleItem.findById(saleItemId).populate("productId");
+				if (!originalSaleItem) {
+					return errorResponse("Sale item not found");
+				}
+
+				// Get the original product with ingredients
+				const originalProduct = await Product.findById(originalSaleItem.productId).populate({
+					path: "ingredientsUsed",
+				});
+				if (!originalProduct) {
+					return errorResponse("Original product not found");
+				}
+
+				// Get the new product with ingredients
+				const newProduct = await Product.findById(newProductId);
+				if (!newProduct) {
+					return errorResponse("New product not found");
+				}
+
+				// Return original product's ingredients to inventory
+				const originalIngredients = await ProductIngredient.find({
+					productId: originalProduct._id,
+				});
+
+				for (const ingredient of originalIngredients) {
+					const quantityToReturn = ingredient.quantityUsed * originalSaleItem.quantity;
+					await Item.findByIdAndUpdate(ingredient.itemId, {
+						$inc: { quantity: quantityToReturn },
+					});
+					console.log(
+						`Returned ${quantityToReturn} of item ${ingredient.itemId} from original product`
+					);
+				}
+
+				// Deduct new product's ingredients from inventory
+				const newIngredients = await ProductIngredient.find({
+					productId: newProductId,
+				});
+
+				let newItemCost = 0;
+				for (const ingredient of newIngredients) {
+					const inventoryItem = await Item.findById(ingredient.itemId);
+					if (!inventoryItem) {
+						return errorResponse(`Ingredient item ${ingredient.itemId} not found`);
+					}
+
+					const quantityNeeded = ingredient.quantityUsed * newQuantity;
+					newItemCost += inventoryItem.pricePerUnit * quantityNeeded;
+
+					// Deduct from inventory
+					await Item.findByIdAndUpdate(ingredient.itemId, {
+						$inc: { quantity: -quantityNeeded },
+					});
+					console.log(
+						`Deducted ${quantityNeeded} of item ${ingredient.itemId} for new product`
+					);
+				}
+
+				// Calculate cost difference
+				const originalItemCost = await calculateItemCost(
+					originalProduct._id.toString(),
+					originalSaleItem.quantity
+				);
+				const costDifference = newItemCost - originalItemCost;
+
+				// Calculate price difference
+				const originalTotal = originalSaleItem.priceAtSale * originalSaleItem.quantity;
+				const newTotal = newProduct.price * newQuantity;
+				const priceDifference = newTotal - originalTotal;
+
+				// Update the sale item
+				await SaleItem.findByIdAndUpdate(saleItemId, {
+					productId: newProductId,
+					quantity: newQuantity,
+					priceAtSale: newProduct.price,
+				});
+
+				// Update the sale totals
+				const updatedSale = await Sale.findByIdAndUpdate(
+					saleId,
+					{
+						$inc: {
+							totalAmount: priceDifference,
+							costOfGoods: costDifference,
+							grossProfit: priceDifference - costDifference,
+						},
+					},
+					{ new: true }
+				);
+
+				// If there's a price difference, update cash drawer
+				if (priceDifference !== 0) {
+					const drawer = await CashDrawer.findOne({ status: "OPEN" }).sort({ createdAt: -1 });
+					if (drawer) {
+						await CashDrawer.findByIdAndUpdate(drawer._id, {
+							$inc: { cashAmount: priceDifference },
+						});
+					}
+				}
+
+				return successResponse(
+					`Item changed successfully. Price difference: ₱${priceDifference.toFixed(2)}`,
+					updatedSale
+				);
+			} catch (err: any) {
+				console.error("Error changing item:", err);
+				return errorResponse(err.message || "Failed to change item");
+			}
+		},
 	},
 };
+
+// Helper function to calculate item cost
+async function calculateItemCost(productId: string, quantity: number): Promise<number> {
+	const ingredients = await ProductIngredient.find({ productId });
+	let totalCost = 0;
+
+	for (const ingredient of ingredients) {
+		const inventoryItem = await Item.findById(ingredient.itemId);
+		if (inventoryItem) {
+			const quantityNeeded = ingredient.quantityUsed * quantity;
+			totalCost += inventoryItem.pricePerUnit * quantityNeeded;
+		}
+	}
+
+	return totalCost;
+}

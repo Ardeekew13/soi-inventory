@@ -38,6 +38,7 @@ export const productTypeDefs = gql`
 
 	extend type Query {
 		productsList(search: String, limit: Int, skip: Int): ProductResponse!
+		productsByIngredient(itemId: ID!): [Product!]!
 	}
 
 	extend type Mutation {
