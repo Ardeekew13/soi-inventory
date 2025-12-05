@@ -27,7 +27,7 @@ export const saleTypeDefs = gql`
   type SaleItem {
     _id: ID!
     productId: ID!
-    product: Product!
+    product: Product
     quantity: Float!
     priceAtSale: Float!
     quantityPrinted: Float

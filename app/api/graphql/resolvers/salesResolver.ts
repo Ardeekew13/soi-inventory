@@ -383,10 +383,19 @@ export const salesResolver = {
 	},
 	SaleItem: {
 		product: async (parent: any) => {
+			// If product is already populated, return it
 			if (parent.productId && typeof parent.productId === 'object') {
 				return parent.productId;
 			}
-			return await Product.findById(parent.productId);
+			
+			// Try to find the product, return null if deleted
+			try {
+				const product = await Product.findById(parent.productId);
+				return product || null;
+			} catch (error) {
+				console.error(`Error finding product ${parent.productId}:`, error);
+				return null;
+			}
 		},
 		quantityPrinted: (parent: any) => {
 			return parent.quantityPrinted ?? 0;
