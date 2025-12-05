@@ -2,34 +2,31 @@
 
 import User from "@/app/api/graphql/models/User";
 import bcrypt from "bcryptjs";
+import { getFullPermissions } from "@/utils/permissions";
 
 export async function seedDefaultUser() {
   const adminPassword: string = process.env.ADMIN_PASSWORD ?? "secret-password";
   
-  // Full permissions for SUPER_ADMIN
-  const fullPermissions = {
-    dashboard: { view: true },
-    inventory: { view: true, addEdit: true, delete: true },
-    product: { view: true, addEdit: true, delete: true },
-    pointOfSale: { view: true, addEdit: true, void: true },
-    transaction: { view: true, void: true, changeItem: true, refund: true },
-    cashDrawer: { view: true, openClose: true, cashInOut: true },
-    discount: { view: true, addEdit: true, delete: true },
-    serviceCharge: { view: true, addEdit: true, delete: true },
-    settings: { view: true, manageUsers: true },
-  };
+  // Get full permissions using the centralized function
+  const fullPermissions = getFullPermissions();
 
   // Check if admin user exists
   const existingAdmin = await User.findOne({ username: "admin" });
 
   if (existingAdmin) {
-    // Update existing SUPER_ADMIN with full permissions if they don't have any
-    if (existingAdmin.role === "SUPER_ADMIN" && !existingAdmin.permissions) {
-      existingAdmin.permissions = fullPermissions;
-      await existingAdmin.save();
-      console.log("✅ Updated existing SUPER_ADMIN with full permissions");
-    } else {
-      console.log("ℹ️ Admin user already exists with proper setup");
+    // Only update SUPER_ADMIN if they have NO permissions at all (empty or null)
+    if (existingAdmin.role === "SUPER_ADMIN") {
+      const hasNoPermissions = 
+        !existingAdmin.permissions || 
+        Object.keys(existingAdmin.permissions).length === 0;
+      
+      if (hasNoPermissions) {
+        existingAdmin.permissions = fullPermissions;
+        await existingAdmin.save();
+        console.log("✅ Updated existing SUPER_ADMIN with full permissions");
+      } else {
+        console.log("ℹ️ Admin user already exists with proper setup");
+      }
     }
     return;
   }
