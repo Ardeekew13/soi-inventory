@@ -8,6 +8,7 @@ import { Item, ItemsResponse, Query } from "@/generated/graphql";
 import { GET_ITEMS } from "@/graphql/inventory/items";
 import { useModal } from "@/hooks/useModal";
 import { usePermissionGuard } from "@/hooks/usePermissionGuard";
+import { exportInventoryToExcel } from "@/utils/export-inventory";
 import { CommonStateFilterI } from "@/utility/filters";
 import { useQuery } from "@apollo/client";
 import { Button, message, Skeleton, Tabs } from "antd";
@@ -74,11 +75,22 @@ const Inventory = () => {
 				/>
 			}
 			extra={
-				(userRole === 'SUPER_ADMIN' || userPermissions?.inventory?.includes('addEdit')) && (
-					<Button key="1" type="primary" onClick={() => openModal()}>
-						Add Item
-					</Button>
-				)
+				<>
+					{(userRole === 'SUPER_ADMIN' || userPermissions?.inventory?.includes('view')) && (
+						<Button 
+							key="export" 
+							onClick={() => exportInventoryToExcel(data?.itemsList?.items ?? [])}
+							style={{ marginRight: 8 }}
+						>
+							Export to Excel
+						</Button>
+					)}
+					{(userRole === 'SUPER_ADMIN' || userPermissions?.inventory?.includes('addEdit')) && (
+						<Button key="add" type="primary" onClick={() => openModal()}>
+							Add Item
+						</Button>
+					)}
+				</>
 			}
 		>
 			<Tabs

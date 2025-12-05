@@ -8,7 +8,7 @@ import { Query, Sale, SaleItem } from "@/generated/graphql";
 import { GET_SALES } from "@/graphql/inventory/transactions";
 import { useModal } from "@/hooks/useModal";
 import { usePermissionGuard } from "@/hooks/usePermissionGuard";
-import { exportToExcel } from "@/utils/export-report";
+import { exportTransactionsToExcel } from "@/utils/export-transactions";
 import { pesoFormatter } from "@/utils/helper";
 import { useQuery } from "@apollo/client";
 import { Button, message, Skeleton, Tabs } from "antd";
@@ -68,16 +68,32 @@ const Transactions = () => {
   const formattedData = filteredSales.map((sale: Sale) => {
     const itemList: string = (sale.saleItems as SaleItem[])
       .map(
-        (i: SaleItem) => `${i.product.name} (x${i.quantity}, ${i.priceAtSale})`
+        (i: SaleItem) => `${i.product.name} (x${i.quantity})`
       )
       .join(", ");
+    
+    const itemCount = (sale.saleItems as SaleItem[]).reduce(
+      (sum, item) => sum + item.quantity,
+      0
+    );
+
     return {
-      "Transaction Date": dayjs(sale.createdAt).format("YYYY-MM-DD HH:mm"),
-      "Order No.": sale.orderNo,
-      "Items Sold": itemList,
-      "Cost of Goods": pesoFormatter(sale.costOfGoods),
-      "Gross Profit": pesoFormatter(sale.grossProfit),
-      "Total Amount": pesoFormatter(sale.totalAmount),
+      "Date": dayjs(sale.createdAt).format("YYYY-MM-DD"),
+      "Time": dayjs(sale.createdAt).format("HH:mm:ss"),
+      "Order No.": sale.orderNo || "N/A",
+      "Type": sale.orderType || "N/A",
+      "Table": sale.tableNumber || "N/A",
+      "Customer": sale.customerName || "N/A",
+      "Items": itemList,
+      "Item Count": itemCount,
+      "Status": sale.status,
+      "Total Amount": sale.totalAmount,
+      "Cost of Goods": sale.costOfGoods,
+      "Gross Profit": sale.grossProfit,
+      "Profit %": sale.totalAmount > 0 
+        ? ((sale.grossProfit / sale.totalAmount) * 100).toFixed(2) + "%" 
+        : "0%",
+      "Void Reason": sale.voidReason || "",
     };
   });
 
@@ -105,9 +121,9 @@ const Transactions = () => {
         userPermissions?.transaction?.includes('view') ? (
           <Button
             type="primary"
-            onClick={() => exportToExcel(formattedData ?? [], "transactions")}
+            onClick={() => exportTransactionsToExcel(formattedData ?? [], activeTab)}
           >
-            Export to xlsx
+            Export to Excel
           </Button>
         ) : undefined
       }

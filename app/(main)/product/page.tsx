@@ -8,6 +8,7 @@ import type { Product, Query } from "@/generated/graphql";
 import { GET_PRODUCTS } from "@/graphql/inventory/products";
 import { useModal } from "@/hooks/useModal";
 import { usePermissionGuard } from "@/hooks/usePermissionGuard";
+import { exportProductsToExcel } from "@/utils/export-products";
 import { useQuery } from "@apollo/client";
 import { Button, message, Skeleton, Tabs } from "antd";
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -68,11 +69,22 @@ const Product = () => {
 				/>
 			}
 			extra={
-				(userRole === 'SUPER_ADMIN' || userPermissions?.product?.includes('addEdit')) ? [
-					<Button key="1" type="primary" onClick={() => openModal()}>
-						Add Product
-					</Button>,
-				] : []
+				<>
+					{(userRole === 'SUPER_ADMIN' || userPermissions?.product?.includes('view')) && (
+						<Button 
+							key="export" 
+							onClick={() => exportProductsToExcel(data?.productsList?.products ?? [])}
+							style={{ marginRight: 8 }}
+						>
+							Export to Excel
+						</Button>
+					)}
+					{(userRole === 'SUPER_ADMIN' || userPermissions?.product?.includes('addEdit')) && (
+						<Button key="add" type="primary" onClick={() => openModal()}>
+							Add Product
+						</Button>
+					)}
+				</>
 			}
 		>
 			<Tabs
