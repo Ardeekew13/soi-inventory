@@ -22,11 +22,14 @@ import {
   Space,
   Table,
   Typography,
+  Tag,
+  Alert,
 } from "antd";
 import { MessageInstance } from "antd/es/message/interface";
 import { TableProps } from "antd/lib";
 import { useEffect, useState } from "react";
 import { useMediaQuery } from "react-responsive";
+import { ExclamationCircleOutlined } from "@ant-design/icons";
 import InventoryListModal from "./inventoryListModal";
 
 interface ProductModalProps {
@@ -87,8 +90,10 @@ const AddProductModal = (props: ProductModalProps) => {
             name: ing.item.name,
             unit: ing.item.unit,
             pricePerUnit: ing.item.pricePerUnit,
+            isActive: (ing.item as any).isActive,
           },
           quantityUsed: ing.quantityUsed,
+          isActive: (ing as any).isActive,
         })
       );
       setIngredients(formattedIngredients as IngredientWithQuantity[]);
@@ -296,6 +301,19 @@ const AddProductModal = (props: ProductModalProps) => {
       title: "Name",
       dataIndex: ["item", "name"],
       key: "name",
+      render: (name: string, record: any) => {
+        const isInactive = !record.item.isActive || !record.isActive;
+        return (
+          <Space>
+            {name}
+            {isInactive && (
+              <Tag color="red" icon={<ExclamationCircleOutlined />}>
+                Inactive
+              </Tag>
+            )}
+          </Space>
+        );
+      },
     },
     {
       title: "Unit",
@@ -390,6 +408,16 @@ const AddProductModal = (props: ProductModalProps) => {
           price: record?.price,
         }}
       >
+        {record?._id && ingredients.some((ing: any) => !ing.item.isActive || !ing.isActive) && (
+          <Alert
+            message="Warning: This product has inactive ingredients"
+            description="This product cannot be sold until all ingredients are reactivated. Go to Inventory → Inactive Items to restore them."
+            type="warning"
+            showIcon
+            style={{ marginBottom: 16 }}
+          />
+        )}
+        
         <Row gutter={16}>
           <Col span={24}>
             <Form.Item name="name" label="Product Name" rules={requiredField}>

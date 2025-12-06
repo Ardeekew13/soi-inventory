@@ -8,6 +8,7 @@ export const itemTypeDefs = gql`
 		unit: String!
 		pricePerUnit: Float!
 		currentStock: Float!
+		isActive: Boolean!
 		createdAt: String!
 		updatedAt: String!
 	}
@@ -19,6 +20,7 @@ export const itemTypeDefs = gql`
 
 	extend type Query {
 		itemsList(search: String, limit: Int, skip: Int): ItemsResponse!
+		inactiveItemsList(search: String, limit: Int, skip: Int): ItemsResponse!
 	}
 
 	extend type Mutation {
@@ -29,6 +31,8 @@ export const itemTypeDefs = gql`
 			pricePerUnit: Float!
 			currentStock: Float!
 		): ItemResultResponse!
+
+		reactivateItem(_id: ID!): ItemResultResponse!
 
 		deleteItem(_id: ID!): DeletionResult!
 	}

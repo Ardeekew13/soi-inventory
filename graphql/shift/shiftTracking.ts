@@ -76,7 +76,7 @@ export const MY_SHIFT_HISTORY_QUERY = gql`
 `;
 
 export const ALL_SHIFTS_QUERY = gql`
-  query AllShifts($date: Date, $status: ShiftStatus, $limit: Int, $offset: Int) {
+  query AllShifts($date: String, $status: ShiftStatus, $limit: Int, $offset: Int) {
     allShifts(date: $date, status: $status, limit: $limit, offset: $offset) {
       _id
       userId

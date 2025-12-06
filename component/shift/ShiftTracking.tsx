@@ -88,7 +88,7 @@ const eventTypeLabels: Record<
 };
 
 export default function ShiftTracking() {
-  const { message } = App.useApp();
+  const { message, modal } = App.useApp();
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -99,6 +99,7 @@ export default function ShiftTracking() {
   const [currentEventType, setCurrentEventType] = useState<string>("");
   const [notes, setNotes] = useState("");
   const [cameraLoading, setCameraLoading] = useState(false);
+  const [noCameraMode, setNoCameraMode] = useState(false);
 
   const { data: currentShiftData, refetch: refetchCurrentShift } = useQuery(
     MY_CURRENT_SHIFT_QUERY
@@ -164,7 +165,38 @@ export default function ShiftTracking() {
     setCameraLoading(true);
     
     try {
+      // Check if mediaDevices is supported
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        throw new Error("Camera API not supported in this browser. Please use a modern browser like Chrome, Firefox, or Safari.");
+      }
+
+      // Check if any cameras are available
+      const devices = await navigator.mediaDevices.enumerateDevices();
+      const videoDevices = devices.filter(device => device.kind === 'videoinput');
+      
+      if (videoDevices.length === 0) {
+        // Show modal asking if user wants to proceed without camera
+        modal.confirm({
+          title: "No Camera Found",
+          content: "No camera was detected on this device. Would you like to record the event without a photo?",
+          okText: "Continue Without Photo",
+          cancelText: "Cancel",
+          onOk: () => {
+            setNoCameraMode(true);
+            setCameraLoading(false);
+            // Modal stays open for notes input
+          },
+          onCancel: () => {
+            setIsCameraOpen(false);
+            setCameraLoading(false);
+          }
+        });
+        return;
+      }
+
       console.log("Requesting camera access...");
+      console.log("Available cameras:", videoDevices);
+      
       const stream = await navigator.mediaDevices.getUserMedia({
         video: { facingMode: "user", width: 640, height: 480 },
         audio: false,
@@ -201,7 +233,25 @@ export default function ShiftTracking() {
       }, 300);
     } catch (error: any) {
       console.error("Camera access error:", error);
-      message.error(`Failed to access camera: ${error.message}`);
+      
+      // Provide more specific error messages
+      let errorMessage = "Failed to access camera";
+      
+      if (error.name === "NotFoundError" || error.name === "DevicesNotFoundError") {
+        errorMessage = "No camera found on this device. Please connect a camera or use a device with a built-in camera.";
+      } else if (error.name === "NotAllowedError" || error.name === "PermissionDeniedError") {
+        errorMessage = "Camera access denied. Please allow camera permissions in your browser settings and refresh the page.";
+      } else if (error.name === "NotReadableError" || error.name === "TrackStartError") {
+        errorMessage = "Camera is already in use by another application. Please close other apps using the camera and try again.";
+      } else if (error.name === "OverconstrainedError") {
+        errorMessage = "Could not satisfy camera constraints. Your camera may not support the required settings.";
+      } else if (error.name === "SecurityError") {
+        errorMessage = "Camera access blocked. Please ensure you're using HTTPS or localhost.";
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
+      message.error(errorMessage);
       setIsCameraOpen(false);
       setCameraLoading(false);
     }
@@ -217,6 +267,7 @@ export default function ShiftTracking() {
     setCapturedPhoto("");
     setPhotoTimestamp(null);
     setNotes("");
+    setNoCameraMode(false);
   };
 
   const capturePhoto = () => {
@@ -568,7 +619,46 @@ export default function ShiftTracking() {
         width={700}
       >
         <Space direction="vertical" size="large" style={{ width: "100%" }}>
-          {!capturedPhoto ? (
+          {noCameraMode ? (
+            // No camera mode - just notes and submit
+            <>
+              <div style={{ 
+                padding: 24, 
+                backgroundColor: "#fff7e6", 
+                borderRadius: 8,
+                border: "1px solid #ffd666"
+              }}>
+                <Space direction="vertical">
+                  <Text strong>Recording without photo</Text>
+                  <Text type="secondary">
+                    No camera was detected. You can add optional notes and submit.
+                  </Text>
+                </Space>
+              </div>
+              <input
+                placeholder="Notes (optional)"
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                style={{
+                  width: "100%",
+                  padding: 12,
+                  border: "1px solid #d9d9d9",
+                  borderRadius: 4,
+                  fontSize: 14
+                }}
+              />
+              <Space style={{ width: "100%", justifyContent: "flex-end" }}>
+                <Button onClick={stopCamera}>Cancel</Button>
+                <Button
+                  type="primary"
+                  onClick={() => submitEvent(true)}
+                  loading={recording}
+                >
+                  Submit Event
+                </Button>
+              </Space>
+            </>
+          ) : !capturedPhoto ? (
             <>
               <div style={{ position: "relative" }}>
                 <video

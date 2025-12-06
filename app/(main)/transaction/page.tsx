@@ -68,7 +68,7 @@ const Transactions = () => {
   const formattedData = filteredSales.map((sale: Sale) => {
     const itemList: string = (sale.saleItems as SaleItem[])
       .map(
-        (i: SaleItem) => `${i.product.name} (x${i.quantity})`
+        (i: SaleItem) => `${i?.product?.name} (x${i?.quantity})`
       )
       .join(", ");
     

@@ -5,7 +5,7 @@ import { GET_PRODUCTS_BY_INGREDIENT } from "@/graphql/inventory/productsByIngred
 import { GET_ITEMS } from "@/graphql/inventory/items";
 import { pesoFormatter } from "@/utils/helper";
 import { hasPermission } from "@/utils/permissions";
-import { DeleteOutlined, FilterOutlined } from "@ant-design/icons";
+import { DeleteOutlined, FilterOutlined, ExclamationCircleFilled } from "@ant-design/icons";
 import { useLazyQuery, useMutation, useQuery } from "@apollo/client";
 import {
   Button,
@@ -16,6 +16,7 @@ import {
   Select,
   Space,
   Table,
+  Tooltip,
 } from "antd";
 import { MessageInstance } from "antd/es/message/interface";
 import { TableProps } from "antd/lib";
@@ -79,6 +80,22 @@ const ProductListTable = (props: IProps) => {
 
   const displayData = selectedIngredient ? filteredProducts : data;
 
+  // Check if product has missing or inactive ingredients
+  const checkMissingIngredients = (product: Product) => {
+    if (!product.ingredientsUsed || product.ingredientsUsed.length === 0) {
+      return { hasMissing: false, missingCount: 0 };
+    }
+
+    const missingCount = product.ingredientsUsed.filter((ing: any) => {
+      return !ing.isActive || !ing.item || !ing.item.isActive;
+    }).length;
+
+    return {
+      hasMissing: missingCount > 0,
+      missingCount,
+    };
+  };
+
   const [deleteProduct, { loading: deleteLoading }] = useMutation<Mutation>(
     DELETE_PRODUCT,
     {
@@ -106,7 +123,20 @@ const ProductListTable = (props: IProps) => {
       title: "Name",
       dataIndex: "name",
       key: "name",
-      width: "80%",
+      width: "70%",
+      render: (name: string, record: Product) => {
+        const { hasMissing, missingCount } = checkMissingIngredients(record);
+        return (
+          <Space>
+            {name}
+            {hasMissing && (
+              <Tooltip title={`This product has ${missingCount} inactive ingredient(s)`}>
+                <ExclamationCircleFilled style={{ color: "#ff4d4f" }} />
+              </Tooltip>
+            )}
+          </Space>
+        );
+      },
     },
     {
       title: "Price",

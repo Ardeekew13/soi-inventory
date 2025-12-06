@@ -3,9 +3,10 @@ import CommonPageTitle from "@/component/common/CommonPageTitle";
 import PageLayout from "@/component/common/custom-antd/PageContainer";
 import AddItemModal from "@/component/inventory/dialog/addItemDialog";
 import ItemListTable from "@/component/inventory/itemListTable";
+import InactiveItemListTable from "@/component/inventory/inactiveItemListTable";
 import { useRefetchFlag } from "@/context/TriggerRefetchContext";
 import { Item, ItemsResponse, Query } from "@/generated/graphql";
-import { GET_ITEMS } from "@/graphql/inventory/items";
+import { GET_ITEMS, GET_INACTIVE_ITEMS } from "@/graphql/inventory/items";
 import { useModal } from "@/hooks/useModal";
 import { usePermissionGuard } from "@/hooks/usePermissionGuard";
 import { exportInventoryToExcel } from "@/utils/export-inventory";
@@ -30,12 +31,27 @@ const Inventory = () => {
 		limit: 10,
 		search: "",
 	});
+
+	const [inactiveState, setInactiveState] = useState<CommonStateFilterI>({
+		page: 1,
+		limit: 10,
+		search: "",
+	});
 	
 	const { data, loading, refetch } = useQuery<Query>(GET_ITEMS, {
 		variables: {
 			search: state?.search,
 			limit: state?.limit,
 			skip: ((state.page ?? 1) - 1) * (state.limit ?? 10),
+		},
+		skip: permissionLoading, // Skip query while checking permissions
+	});
+
+	const { data: inactiveData, loading: inactiveLoading, refetch: refetchInactive } = useQuery<Query>(GET_INACTIVE_ITEMS, {
+		variables: {
+			search: inactiveState?.search,
+			limit: inactiveState?.limit,
+			skip: ((inactiveState.page ?? 1) - 1) * (inactiveState.limit ?? 10),
 		},
 		skip: permissionLoading, // Skip query while checking permissions
 	});
@@ -55,9 +71,25 @@ const Inventory = () => {
 		[data, loading, refetch, openModal, messageApi, state, setState, userPermissions, userRole]
 	);
 
+	const inactiveTableProps = useMemo(
+		() => ({
+			data: (inactiveData as any)?.inactiveItemsList as ItemsResponse,
+			loading: inactiveLoading,
+			refetch: refetchInactive,
+			openModal,
+			messageApi,
+			state: inactiveState,
+			setState: setInactiveState,
+			userPermissions,
+			userRole,
+		}),
+		[inactiveData, inactiveLoading, refetchInactive, openModal, messageApi, inactiveState, setInactiveState, userPermissions, userRole]
+	);
+
 	useEffect(() => {
 		if (triggerRefetch) {
 			refetch();
+			refetchInactive();
 			setTriggerRefetch(false);
 		}
 	});
@@ -93,24 +125,30 @@ const Inventory = () => {
 				</>
 			}
 		>
-			<Tabs
-				defaultActiveKey="1"
-				size="small"
-				items={[
-					{
-						label: "Items",
-						key: "1",
-						children: <ItemListTable {...tableProps} />,
-					},
-				]}
-			/>
-
-			{contextHolder}
+		<Tabs
+			defaultActiveKey="1"
+			size="small"
+			items={[
+				{
+					label: "Active Items",
+					key: "1",
+					children: <ItemListTable {...tableProps} />,
+				},
+				{
+					label: "Inactive Items",
+					key: "2",
+					children: <InactiveItemListTable {...inactiveTableProps} />,
+				},
+			]}
+		/>			{contextHolder}
 			<AddItemModal
 				key={selectedRecord?._id}
 				open={isModalOpen}
 				onClose={closeModal}
-				refetch={refetch}
+				refetch={() => {
+					refetch();
+					refetchInactive();
+				}}
 				messageApi={messageApi}
 				record={selectedRecord}
 			/>

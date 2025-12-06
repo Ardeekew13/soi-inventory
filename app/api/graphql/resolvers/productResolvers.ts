@@ -37,11 +37,11 @@ export const productResolvers = {
           .skip(skip)
           .populate({
             path: "ingredientsUsed",
-            match: { isActive: true }, // Only populate active ingredients
+            // Don't filter by isActive - we need to see inactive ingredients too
             populate: {
               path: "itemId",
               model: "Item",
-              match: { isActive: true }, // Only populate active items
+              // Don't filter by isActive - we need to see inactive items too
             },
           }),
         Product.countDocuments(filter),
@@ -59,6 +59,67 @@ export const productResolvers = {
               productId: ing.productId,
               itemId: ing.itemId?._id || ing.itemId,
               quantityUsed: ing.quantityUsed,
+              isActive: ing.isActive !== undefined ? ing.isActive : true,
+              item: ing.itemId,
+            })
+          ),
+        };
+      });
+
+      return { products: formattedProducts, totalCount };
+    },
+    inactiveProductsList: async (
+      _: unknown,
+      args: PaginationListArgs,
+      context: any
+    ) => {
+      // Check authentication
+      if (!context.user) {
+        throw new Error("Authentication required");
+      }
+
+      // Check permissions
+      const userPermissions = context.user.permissions || {};
+      const userRole = context.user.role;
+
+      if (
+        userRole !== "SUPER_ADMIN" &&
+        !userPermissions.product?.includes("view")
+      ) {
+        throw new Error("Insufficient permissions to view products");
+      }
+
+      const { limit, skip } = applyPaginationArgs(args);
+      const filter = args.search
+        ? { name: { $regex: args.search, $options: "i" }, isActive: false }
+        : { isActive: false };
+      const [products, totalCount] = await Promise.all([
+        Product.find(filter)
+          .limit(limit)
+          .skip(skip)
+          .populate({
+            path: "ingredientsUsed",
+            populate: {
+              path: "itemId",
+              model: "Item",
+            },
+          }),
+        Product.countDocuments(filter),
+      ]);
+
+      const formattedProducts = products.map((product) => {
+        const productObj = product.toObject();
+        return {
+          ...productObj,
+          createdAt: new Date(product.createdAt).toISOString(),
+          updatedAt: new Date(product.updatedAt).toISOString(),
+          ingredientsUsed: (productObj.ingredientsUsed || []).map(
+            (ing: any) => ({
+              _id: ing._id,
+              productId: ing.productId,
+              itemId: ing.itemId?._id || ing.itemId,
+              quantityUsed: ing.quantityUsed,
+              isActive: ing.isActive !== undefined ? ing.isActive : true,
               item: ing.itemId,
             })
           ),
@@ -122,6 +183,7 @@ export const productResolvers = {
               productId: ing.productId,
               itemId: ing.itemId?._id || ing.itemId,
               quantityUsed: ing.quantityUsed,
+              isActive: ing.isActive !== undefined ? ing.isActive : true,
               item: ing.itemId,
             })
           ),
@@ -151,6 +213,7 @@ export const productResolvers = {
         productId: ing.productId,
         itemId: ing.itemId?._id || ing.itemId,
         quantityUsed: ing.quantityUsed,
+        isActive: ing.isActive !== undefined ? ing.isActive : true,
         item: ing.itemId,
       }));
     },
@@ -201,19 +264,83 @@ export const productResolvers = {
       }
 
       try {
-        // Check if product with same name exists (excluding current product if editing)
-        const existingProduct = await Product.findOne({
-          name,
+        // Helper function to calculate Levenshtein distance
+        const levenshteinDistance = (str1: string, str2: string): number => {
+          const s1 = str1.toLowerCase();
+          const s2 = str2.toLowerCase();
+          const len1 = s1.length;
+          const len2 = s2.length;
+          const matrix: number[][] = [];
+
+          for (let i = 0; i <= len1; i++) {
+            matrix[i] = [i];
+          }
+          for (let j = 0; j <= len2; j++) {
+            matrix[0][j] = j;
+          }
+
+          for (let i = 1; i <= len1; i++) {
+            for (let j = 1; j <= len2; j++) {
+              const cost = s1[i - 1] === s2[j - 1] ? 0 : 1;
+              matrix[i][j] = Math.min(
+                matrix[i - 1][j] + 1,
+                matrix[i][j - 1] + 1,
+                matrix[i - 1][j - 1] + cost
+              );
+            }
+          }
+          return matrix[len1][len2];
+        };
+
+        // Check for exact match (case-insensitive, excluding current product)
+        const exactMatch = await Product.findOne({
+          name: { $regex: new RegExp(`^${name}$`, 'i') },
           _id: { $ne: id },
         });
 
-        if (existingProduct) {
-          return errorResponse("A product with this name already exists.");
+        if (exactMatch) {
+          if (exactMatch.isActive) {
+            return errorResponse("An active product with this name already exists.");
+          } else {
+            // Found inactive product with same name
+            return {
+              success: false,
+              message: "INACTIVE_PRODUCT_EXISTS",
+              data: exactMatch,
+            };
+          }
         }
 
-        // Validate that all items exist
+        // Check for similar names
+        const allProducts = await Product.find({ _id: { $ne: id } });
+        const similarProducts = allProducts.filter(product => {
+          const distance = levenshteinDistance(name, product.name);
+          return distance <= 2 && distance > 0;
+        });
+
+        if (similarProducts.length > 0) {
+          const inactiveSimilar = similarProducts.find(p => !p.isActive);
+          if (inactiveSimilar) {
+            return {
+              success: false,
+              message: "SIMILAR_INACTIVE_PRODUCT",
+              data: inactiveSimilar,
+            };
+          }
+          
+          const activeSimilar = similarProducts.filter(p => p.isActive);
+          if (activeSimilar.length > 0) {
+            return {
+              success: false,
+              message: "SIMILAR_PRODUCTS_EXIST",
+              data: activeSimilar,
+            };
+          }
+        }
+
+        // Validate that all items exist and are active
         const itemIds = items.map((item) => item.itemId);
-        const existingItems = await Item.find({ _id: { $in: itemIds } });
+        const existingItems = await Item.find({ _id: { $in: itemIds }, isActive: true });
 
         console.log(
           `Found ${existingItems.length} items out of ${itemIds.length} requested`
@@ -371,5 +498,53 @@ export const productResolvers = {
         return errorResponse("Failed to delete product");
       }
     },
+
+    reactivateProduct: async (_: unknown, { id }: { id: string }, context: any) => {
+      // Check authentication
+      if (!context.user) {
+        throw new Error("Authentication required");
+      }
+
+      // Check permissions
+      const userPermissions = context.user.permissions || {};
+      const userRole = context.user.role;
+
+      if (
+        userRole !== "SUPER_ADMIN" &&
+        !userPermissions.product?.includes("addEdit")
+      ) {
+        throw new Error("Insufficient permissions to reactivate products");
+      }
+
+      try {
+        const product = await Product.findByIdAndUpdate(
+          id,
+          { isActive: true },
+          { new: true }
+        ).populate({
+          path: "ingredientsUsed",
+          populate: {
+            path: "itemId",
+            model: "Item",
+          },
+        });
+
+        if (!product) {
+          return errorResponse("Product not found");
+        }
+
+        // Also reactivate associated product ingredients
+        await ProductIngredient.updateMany(
+          { productId: id },
+          { isActive: true }
+        );
+
+        return successResponse("Product reactivated successfully", product);
+      } catch (err) {
+        console.error("reactivateProduct error:", err);
+        return errorResponse("Failed to reactivate product");
+      }
+    },
   },
 };
+

@@ -1,6 +1,8 @@
 import { gql } from "@apollo/client";
 
 export const commonTypeDefs = gql`
+	scalar Date
+
 	type BaseResponse {
 		success: Boolean!
 		message: String

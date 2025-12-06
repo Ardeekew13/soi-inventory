@@ -6,6 +6,7 @@ export const productTypeDefs = gql`
 		id: ID!
 		name: String!
 		price: Float!
+		isActive: Boolean!
 		ingredientsUsed: [ProductIngredient!]!
 		createdAt: String!
 		updatedAt: String!
@@ -22,6 +23,7 @@ export const productTypeDefs = gql`
 		productId: ID!
 		itemId: ID!
 		quantityUsed: Float!
+		isActive: Boolean!
 		item: Item!
 	}
 
@@ -39,6 +41,7 @@ export const productTypeDefs = gql`
 	extend type Query {
 		productsList(search: String, limit: Int, skip: Int): ProductResponse!
 		productsByIngredient(itemId: ID!): [Product!]!
+		inactiveProductsList(search: String, limit: Int, skip: Int): ProductResponse!
 	}
 
 	extend type Mutation {
@@ -48,6 +51,8 @@ export const productTypeDefs = gql`
 			price: Float!
 			items: [ProductIngredientInput!]!
 		): ProductMutationResponse!
+
+		reactivateProduct(id: ID!): ProductMutationResponse!
 
 		deleteProduct(id: ID!): DeletionResult!
 	}
