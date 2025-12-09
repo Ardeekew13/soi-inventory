@@ -6,6 +6,8 @@ import User, { UserRole } from "../models/User";
 import ShiftSchedule from "../models/ShiftSchedule";
 import { successResponse, errorResponse } from "../utils/response";
 import { hasPermission } from "@/utils/permissions";
+import { checkRateLimit, getClientIdentifier, rateLimitConfigs } from "@/lib/rateLimiter";
+import { sanitizeString, sanitizeMongoInput } from "@/lib/validation";
 
 export const authResolvers = {
   User: {
@@ -96,8 +98,28 @@ export const authResolvers = {
       ctx: GraphQLContext
     ) => {
       try {
+        // Apply rate limiting - 5 attempts per 15 minutes
+        const clientId = getClientIdentifier(ctx.request as unknown as Request);
+        const rateLimitResult = checkRateLimit(clientId, rateLimitConfigs.login);
+        
+        if (!rateLimitResult.allowed) {
+          const minutesRemaining = Math.ceil((rateLimitResult.resetTime - Date.now()) / 60000);
+          return {
+            success: false,
+            message: `Too many login attempts. Please try again in ${minutesRemaining} minute${minutesRemaining !== 1 ? 's' : ''}.`,
+            token: null,
+            user: null,
+          };
+        }
+
+        // Sanitize inputs
+        const sanitizedUsername = sanitizeString(username);
+        
         const cookieStore = await cookies();
-        const user = await User.findOne({ username, isActive: true });
+        const user = await User.findOne({ 
+          username: sanitizeMongoInput({ username: sanitizedUsername }).username, 
+          isActive: true 
+        });
 
         if (!user) {
           return {
