@@ -302,7 +302,7 @@ const AddProductModal = (props: ProductModalProps) => {
       dataIndex: ["item", "name"],
       key: "name",
       render: (name: string, record: any) => {
-        const isInactive = !record.item.isActive || !record.isActive;
+        const isInactive = !record.item.isActive;
         return (
           <Space>
             {name}
@@ -408,7 +408,7 @@ const AddProductModal = (props: ProductModalProps) => {
           price: record?.price,
         }}
       >
-        {record?._id && ingredients.some((ing: any) => !ing.item.isActive || !ing.isActive) && (
+        {record?._id && ingredients.some((ing: any) => !ing.item.isActive) && (
           <Alert
             message="Warning: This product has inactive ingredients"
             description="This product cannot be sold until all ingredients are reactivated. Go to Inventory → Inactive Items to restore them."

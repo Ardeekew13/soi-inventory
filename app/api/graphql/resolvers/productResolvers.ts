@@ -59,7 +59,6 @@ export const productResolvers = {
               productId: ing.productId,
               itemId: ing.itemId?._id || ing.itemId,
               quantityUsed: ing.quantityUsed,
-              isActive: ing.isActive !== undefined ? ing.isActive : true,
               item: ing.itemId,
             })
           ),
@@ -119,7 +118,6 @@ export const productResolvers = {
               productId: ing.productId,
               itemId: ing.itemId?._id || ing.itemId,
               quantityUsed: ing.quantityUsed,
-              isActive: ing.isActive !== undefined ? ing.isActive : true,
               item: ing.itemId,
             })
           ),
@@ -183,7 +181,6 @@ export const productResolvers = {
               productId: ing.productId,
               itemId: ing.itemId?._id || ing.itemId,
               quantityUsed: ing.quantityUsed,
-              isActive: ing.isActive !== undefined ? ing.isActive : true,
               item: ing.itemId,
             })
           ),
@@ -213,7 +210,6 @@ export const productResolvers = {
         productId: ing.productId,
         itemId: ing.itemId?._id || ing.itemId,
         quantityUsed: ing.quantityUsed,
-        isActive: ing.isActive !== undefined ? ing.isActive : true,
         item: ing.itemId,
       }));
     },

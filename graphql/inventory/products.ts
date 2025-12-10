@@ -12,7 +12,6 @@ export const GET_PRODUCTS = gql`
 					productId
 					itemId
 					quantityUsed
-					isActive
 					item {
 						_id
 						name

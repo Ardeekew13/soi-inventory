@@ -50,8 +50,8 @@ const ItemPosCard = (props: IProps) => {
     }
 
     const missingItems = product.ingredientsUsed.filter((ing: any) => {
-      // Check if ingredient is inactive or item is inactive/missing
-      return !ing.isActive || !ing.item || !ing.item.isActive;
+      // Check if item is inactive/missing
+      return !ing.item || !ing.item.isActive;
     });
 
     return {

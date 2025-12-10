@@ -87,7 +87,7 @@ const ProductListTable = (props: IProps) => {
     }
 
     const missingCount = product.ingredientsUsed.filter((ing: any) => {
-      return !ing.isActive || !ing.item || !ing.item.isActive;
+      return !ing.item || !ing.item.isActive;
     }).length;
 
     return {

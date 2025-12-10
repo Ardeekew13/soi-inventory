@@ -23,7 +23,6 @@ export const productTypeDefs = gql`
 		productId: ID!
 		itemId: ID!
 		quantityUsed: Float!
-		isActive: Boolean!
 		item: Item!
 	}
 
