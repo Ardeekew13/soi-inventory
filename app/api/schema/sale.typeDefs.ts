@@ -86,6 +86,7 @@ export const saleTypeDefs = gql`
     checkoutSale(id: ID, items: [SaleItemInput!]!, orderType: OrderType!, tableNumber: String, paymentMethod: String): SaleResponse!
     sendToKitchen(saleId: ID!, itemIds: [ID!]!): DeletionResult!
     recordSale(items: [SaleItemInput!]!): SaleResponse!
+    voidSale(id: ID!, voidReason: String!): DeletionResult!
     voidParkedSale(id: ID!, voidReason: String!): DeletionResult!
     refundSale(id: ID!, refundReason: String!): DeletionResult!
     deleteParkedSale(id: ID!): DeletionResult!

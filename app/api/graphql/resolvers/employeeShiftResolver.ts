@@ -154,6 +154,10 @@ export const employeeShiftResolvers = {
           shiftSchedule = await ShiftSchedule.findById(user.shiftScheduleId);
         }
 
+        if (!shiftSchedule) {
+          throw new Error("No shift schedule assigned to your account. Please contact your administrator.");
+        }
+
         const today = new Date();
         today.setHours(0, 0, 0, 0);
 
@@ -165,6 +169,19 @@ export const employeeShiftResolvers = {
         });
 
         const eventTimestamp = new Date();
+
+        // Helper function to create time from schedule
+        const createScheduledTime = (timeString: string): Date => {
+          const [hours, minutes] = timeString.split(':').map(Number);
+          const scheduledTime = new Date(today);
+          scheduledTime.setHours(hours, minutes, 0, 0);
+          return scheduledTime;
+        };
+
+        // Helper function to compare times and get minutes difference
+        const getMinutesDifference = (actual: Date, scheduled: Date): number => {
+          return (actual.getTime() - scheduled.getTime()) / (1000 * 60);
+        };
 
         // Validate event sequence - more flexible now
         if (shift) {
@@ -206,28 +223,65 @@ export const employeeShiftResolvers = {
               throw new Error("Lunch break already started");
             }
           }
+
+          // Validate timing for break start
+          if (input.eventType === "LUNCH_BREAK_START") {
+            const scheduledBreakStart = createScheduledTime(shiftSchedule.breakStartTime);
+            const minutesDiff = getMinutesDifference(eventTimestamp, scheduledBreakStart);
+            
+            // Allow ±30 minutes window for break start
+            if (Math.abs(minutesDiff) > 30) {
+              throw new Error(`Lunch break should start around ${shiftSchedule.breakStartTime}. You are ${Math.abs(Math.round(minutesDiff))} minutes ${minutesDiff > 0 ? 'late' : 'early'}.`);
+            }
+          }
+
+          // Validate timing for break end
+          if (input.eventType === "LUNCH_BREAK_END") {
+            const scheduledBreakEnd = createScheduledTime(shiftSchedule.breakEndTime);
+            const minutesDiff = getMinutesDifference(eventTimestamp, scheduledBreakEnd);
+            
+            // Allow ±30 minutes window for break end
+            if (Math.abs(minutesDiff) > 30) {
+              throw new Error(`Lunch break should end around ${shiftSchedule.breakEndTime}. You are ${Math.abs(Math.round(minutesDiff))} minutes ${minutesDiff > 0 ? 'late' : 'early'}.`);
+            }
+          }
+
+          // Validate timing for shift end
+          if (input.eventType === "SHIFT_END") {
+            const scheduledShiftEnd = createScheduledTime(shiftSchedule.shiftEndTime);
+            const minutesDiff = getMinutesDifference(eventTimestamp, scheduledShiftEnd);
+            
+            // Warn if leaving too early (more than 30 minutes before scheduled end)
+            if (minutesDiff < -30) {
+              throw new Error(`Shift should end around ${shiftSchedule.shiftEndTime}. You are leaving ${Math.abs(Math.round(minutesDiff))} minutes early.`);
+            }
+          }
         } else {
           // Create new shift
           if (input.eventType !== "SHIFT_START") {
             throw new Error("Must start shift first");
           }
 
-          // Use shift schedule if available, otherwise use defaults
-          let scheduledStartTime = new Date(today);
-          scheduledStartTime.setHours(8, 0, 0, 0); // Default 8:00 AM
+          // Use shift schedule for scheduled start time
+          const scheduledStartTime = createScheduledTime(shiftSchedule.shiftStartTime);
 
-          if (shiftSchedule && shiftSchedule.shiftStartTime) {
-            const [hours, minutes] = shiftSchedule.shiftStartTime.split(':');
-            scheduledStartTime.setHours(parseInt(hours), parseInt(minutes), 0, 0);
-          }
-
-          // Calculate attendance status based on timestamp
+          // Calculate attendance status based on actual vs scheduled time
           let attendanceStatus = "ON_TIME";
-          const lateThresholdMinutes = 15;
-          const minutesLate = (eventTimestamp.getTime() - scheduledStartTime.getTime()) / (1000 * 60);
+          const minutesLate = getMinutesDifference(eventTimestamp, scheduledStartTime);
           
-          if (minutesLate > lateThresholdMinutes) {
+          // Attendance rules:
+          // ON_TIME: Within 15 minutes of scheduled start
+          // LATE: More than 15 minutes late but worked at least 4 hours (half day)
+          // HALF_DAY: Arrived very late (more than 2 hours late)
+          // ABSENT: Will be determined if no shift start recorded for the day
+          
+          if (minutesLate > 15 && minutesLate <= 120) {
             attendanceStatus = "LATE";
+          } else if (minutesLate > 120) {
+            attendanceStatus = "HALF_DAY";
+          } else if (minutesLate < -30) {
+            // Arrived more than 30 minutes early - still ON_TIME but note it
+            attendanceStatus = "ON_TIME";
           }
 
           shift = new EmployeeShift({
