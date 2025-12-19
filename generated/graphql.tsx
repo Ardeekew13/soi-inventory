@@ -236,12 +236,14 @@ export type Mutation = {
   reactivateProduct: ProductMutationResponse;
   recordSale: SaleResponse;
   recordShiftEvent: EmployeeShift;
+  refundSale: DeletionResult;
   sendToKitchen: DeletionResult;
   updateDiscount: DeletionResult;
   updateServiceCharge: DeletionResult;
   updateShiftSchedule: ShiftSchedule;
   updateUser: UserResponse;
   verifyPassword: VerifyPasswordResponse;
+  voidParkedSale: DeletionResult;
   voidSale: DeletionResult;
 };
 
@@ -278,8 +280,9 @@ export type MutationAddProductArgs = {
 export type MutationChangeItemArgs = {
   newProductId: Scalars['ID']['input'];
   newQuantity: Scalars['Float']['input'];
+  oldSaleItemId: Scalars['ID']['input'];
+  reason: Scalars['String']['input'];
   saleId: Scalars['ID']['input'];
-  saleItemId: Scalars['ID']['input'];
 };
 
 
@@ -394,6 +397,18 @@ export type MutationRecordSaleArgs = {
 
 export type MutationRecordShiftEventArgs = {
   input: RecordShiftEventInput;
+};
+
+
+export type MutationRefundSaleArgs = {
+  id: Scalars['ID']['input'];
+  refundReason: Scalars['String']['input'];
+};
+
+
+export type MutationVoidParkedSaleArgs = {
+  id: Scalars['ID']['input'];
+  voidReason: Scalars['String']['input'];
 };
 
 

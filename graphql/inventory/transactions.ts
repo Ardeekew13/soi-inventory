@@ -38,3 +38,21 @@ export const VOID_TRANSACTION = gql`
     }
   }
 `;
+
+export const REFUND_SALE = gql`
+  mutation refundSale($id: ID!, $refundReason: String!) {
+    refundSale(id: $id, refundReason: $refundReason) {
+      success
+      message
+    }
+  }
+`;
+
+export const CHANGE_ITEM = gql`
+  mutation changeItem($saleId: ID!, $oldSaleItemId: ID!, $newProductId: ID!, $newQuantity: Float!, $reason: String!) {
+    changeItem(saleId: $saleId, oldSaleItemId: $oldSaleItemId, newProductId: $newProductId, newQuantity: $newQuantity, reason: $reason) {
+      success
+      message
+    }
+  }
+`;

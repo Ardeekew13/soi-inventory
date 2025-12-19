@@ -22,6 +22,7 @@ import {
   GET_CURRENT_CASH_DRAWER,
   OPEN_CASH_DRAWER,
 } from "@/graphql/cash-drawer/cash-drawer";
+import { ME_QUERY } from "@/graphql/auth/me";
 import { usePermissionGuard } from "@/hooks/usePermissionGuard";
 import { useOfflineSync } from "@/hooks/useOfflineSync";
 import { PHP_BILLS } from "@/utils/constant";
@@ -44,7 +45,7 @@ import {
   Alert,
 } from "antd";
 import dayjs from "dayjs";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
 
 const PointOfSale = () => {
@@ -56,6 +57,10 @@ const PointOfSale = () => {
 
   const [messageApi, contextHolder] = message.useMessage();
   const router = useRouter();
+  
+  // Get current user data
+  const { data: meData } = useQuery<Query>(ME_QUERY);
+  const currentUser = meData?.me;
   
   // Offline sync hook
   const { isOnline, saveOffline } = useOfflineSync();
@@ -83,6 +88,7 @@ const PointOfSale = () => {
   const [cashDrawerModalOpen, setCashDrawerModalOpen] = useState(false);
   const [openingBalance, setOpeningBalance] = useState<number>(0);
   const [paymentMethod, setPaymentMethod] = useState<string>("CASH");
+  const [offlineParkedSales, setOfflineParkedSales] = useState<any[]>([]);
 
   const { data, loading, refetch } = useQuery<Query>(GET_PRODUCTS, {
     variables: { search, limit: 100 },
@@ -110,6 +116,47 @@ const PointOfSale = () => {
       skip: permissionLoading,
     }
   );
+
+  // Load offline parked sales from localStorage
+  useEffect(() => {
+    const loadOfflineParkedSales = () => {
+      try {
+        const stored = localStorage.getItem('offline_parked_sales');
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          // Validate the parsed data is an array
+          if (Array.isArray(parsed)) {
+            setOfflineParkedSales(parsed);
+          } else {
+            console.warn('Invalid offline parked sales data, resetting...');
+            localStorage.removeItem('offline_parked_sales');
+          }
+        }
+      } catch (error) {
+        console.error('Failed to load offline parked sales:', error);
+        // Clear corrupted data
+        localStorage.removeItem('offline_parked_sales');
+      }
+    };
+
+    loadOfflineParkedSales();
+  }, []);
+
+  // Cleanup synced offline sales when coming back online
+  useEffect(() => {
+    if (isOnline && offlineParkedSales.length > 0) {
+      // After a short delay, refetch parked sales to get synced data
+      const timer = setTimeout(() => {
+        refetchParked().then(() => {
+          // Clear offline parked sales as they should be synced
+          setOfflineParkedSales([]);
+          localStorage.removeItem('offline_parked_sales');
+        });
+      }, 2000);
+
+      return () => clearTimeout(timer);
+    }
+  }, [isOnline, offlineParkedSales.length, refetchParked]);
 
   // Handle cash drawer modal opening
   useEffect(() => {
@@ -218,55 +265,71 @@ const PointOfSale = () => {
     }
   );
 
-  const products = data?.productsList?.products || [];
-  const parkedSales = parkedData?.parkedSales || [];
-
-  const discounts = discountsData?.discounts || [];
-  const serviceCharges = serviceChargesData?.serviceCharges || [];
-
-  const hasCashDrawer = !!cashDrawerData?.currentCashDrawer;
-
-  const selectedDiscount = discounts.find(
-    (d: any) => d._id === selectedDiscountId
-  );
-  const selectedServiceCharge = serviceCharges.find(
-    (sc: any) => sc._id === selectedServiceChargeId
+  // Memoized data extractions for performance
+  const products = useMemo(() => data?.productsList?.products || [], [data?.productsList?.products]);
+  const onlineParkedSales = useMemo(() => parkedData?.parkedSales || [], [parkedData?.parkedSales]);
+  const discounts = useMemo(() => discountsData?.discounts || [], [discountsData?.discounts]);
+  const serviceCharges = useMemo(() => serviceChargesData?.serviceCharges || [], [serviceChargesData?.serviceCharges]);
+  
+  // Merge online and offline parked sales (memoized)
+  const parkedSales = useMemo(() => 
+    [...onlineParkedSales, ...offlineParkedSales],
+    [onlineParkedSales, offlineParkedSales]
   );
 
-  // Calculate subtotal (cart items)
-  const subtotal = cart.reduce(
-    (acc, item) => acc + item.price * item.quantity,
-    0
+  const hasCashDrawer = useMemo(() => 
+    !!cashDrawerData?.currentCashDrawer,
+    [cashDrawerData?.currentCashDrawer]
   );
 
-  // Calculate discount amount
-  const discountAmount = selectedDiscount
-    ? (subtotal * selectedDiscount.value) / 100
-    : 0;
+  // Memoized calculations for cart totals
+  const { subtotal, discountAmount, serviceChargeAmount, totalAmount } = useMemo(() => {
+    const selectedDiscount = discounts.find((d: any) => d._id === selectedDiscountId);
+    const selectedServiceCharge = serviceCharges.find((sc: any) => sc._id === selectedServiceChargeId);
 
-  // Calculate amount after discount
-  const amountAfterDiscount = subtotal - discountAmount;
+    // Calculate subtotal (cart items)
+    const subtotal = cart.reduce((acc, item) => acc + item.price * item.quantity, 0);
 
-  // Calculate service charge amount (applied to amount after discount)
-  const serviceChargeAmount = selectedServiceCharge
-    ? (amountAfterDiscount * selectedServiceCharge.value) / 100
-    : 0;
+    // Calculate discount amount
+    const discountAmount = selectedDiscount ? (subtotal * selectedDiscount.value) / 100 : 0;
 
-  // Final total amount
-  const totalAmount = amountAfterDiscount + serviceChargeAmount;
+    // Calculate amount after discount
+    const amountAfterDiscount = subtotal - discountAmount;
 
-  const change = amountPaid - totalAmount;
+    // Calculate service charge amount (applied to amount after discount)
+    const serviceChargeAmount = selectedServiceCharge 
+      ? (amountAfterDiscount * selectedServiceCharge.value) / 100 
+      : 0;
 
-  const handleClearCart = () => {
+    // Final total amount
+    const totalAmount = amountAfterDiscount + serviceChargeAmount;
+
+    return { subtotal, discountAmount, serviceChargeAmount, totalAmount };
+  }, [cart, selectedDiscountId, selectedServiceChargeId, discounts, serviceCharges]);
+
+  const change = useMemo(() => amountPaid - totalAmount, [amountPaid, totalAmount]);
+
+  const selectedDiscount = useMemo(() => 
+    discounts.find((d: any) => d._id === selectedDiscountId),
+    [discounts, selectedDiscountId]
+  );
+  
+  const selectedServiceCharge = useMemo(() => 
+    serviceCharges.find((sc: any) => sc._id === selectedServiceChargeId),
+    [serviceCharges, selectedServiceChargeId]
+  );
+
+  // Memoized handlers for better performance
+  const handleClearCart = useCallback(() => {
     setCart([]);
     setCurrentParkedId(null);
     setOrderType(OrderType.TakeOut);
     setTableNumber(null);
     setSelectedDiscountId(null);
     setSelectedServiceChargeId(null);
-  };
+  }, []);
 
-  const handleOrderTypeChange = (value: string | number) => {
+  const handleOrderTypeChange = useCallback((value: string | number) => {
     const newOrderType = value as OrderType;
     setOrderType(newOrderType);
 
@@ -275,24 +338,30 @@ const PointOfSale = () => {
     } else {
       setTableNumber(null);
     }
-  };
+  }, []);
 
-  const handleSelectTable = (table: string) => {
+  const handleSelectTable = useCallback((table: string) => {
     setTableNumber(table);
-  };
+  }, []);
 
-  const handleSendToKitchen = async (itemIds: string[]) => {
+  const handleSendToKitchen = useCallback(async (itemIds: string[]) => {
     if (!currentParkedSale) return;
 
-    await sendToKitchen({
-      variables: {
-        saleId: currentParkedSale._id,
-        itemIds,
-      },
-    });
-  };
+    try {
+      await sendToKitchen({
+        variables: {
+          saleId: currentParkedSale._id,
+          itemIds,
+        },
+      });
+    } catch (error: any) {
+      console.error('Failed to send to kitchen:', error);
+      messageApi.error(error.message || 'Failed to send items to kitchen');
+    }
+  }, [currentParkedSale, sendToKitchen, messageApi]);
 
-  const handlePark = async () => {
+  const handlePark = useCallback(async () => {
+    // Validation checks
     if (!hasCashDrawer) {
       messageApi.error("Please open cash drawer first");
       setCashDrawerModalOpen(true);
@@ -315,17 +384,90 @@ const PointOfSale = () => {
       quantity: item.quantity,
     }));
 
-    await parkSale({
-      variables: {
-        id: currentParkedId,
-        items,
-        orderType,
-        tableNumber: orderType === OrderType.DineIn ? tableNumber : null,
-      },
-    });
-  };
+    const parkInput = {
+      id: currentParkedId,
+      items,
+      orderType,
+      tableNumber: orderType === OrderType.DineIn ? tableNumber : null,
+    };
 
-  const handleOpenPayment = () => {
+    try {
+      if (isOnline) {
+        // Online: Send to server immediately
+        await parkSale({
+          variables: parkInput,
+        });
+      } else {
+        // Offline: Save locally for later sync
+        await saveOffline('PARKED_SALE', parkInput);
+        
+        // Create offline parked sale for local state with unique ID to prevent conflicts
+        const cashierId = currentUser?._id?.slice(-4) || '0000';
+        const random = Math.random().toString(36).substring(2, 8).toUpperCase();
+        const offlineOrderNo = `PARK-${cashierId}-${Date.now()}-${random}`;
+        
+        const offlineParkedSale = {
+          _id: `offline-${Date.now()}-${random}`,
+          totalAmount,
+          orderNo: offlineOrderNo,
+          orderType,
+          tableNumber: orderType === OrderType.DineIn ? tableNumber : null,
+          items: cart.map((item) => ({
+            _id: item._id,
+            productId: item._id,
+            quantity: item.quantity,
+            productName: item.name,
+            productPrice: item.price,
+          })),
+          status: 'PARKED',
+          costOfGoods: 0,
+          grossProfit: 0,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+          cashierId: currentUser?._id,
+          cashierName: currentUser?.username,
+        } as any;
+
+        // Save to localStorage with error handling
+        try {
+          const updatedOfflineParkedSales = [...offlineParkedSales, offlineParkedSale];
+          setOfflineParkedSales(updatedOfflineParkedSales);
+          localStorage.setItem('offline_parked_sales', JSON.stringify(updatedOfflineParkedSales));
+
+          // Add to local parked sales
+          setCurrentParkedId(offlineParkedSale._id);
+          setCurrentParkedSale(offlineParkedSale);
+          
+          // Show kitchen receipt
+          setKitchenReceiptOpen(true);
+          
+          messageApi.info("💾 Order parked offline. Will sync when online.");
+        } catch (storageError) {
+          console.error('Failed to save to localStorage:', storageError);
+          messageApi.error('Failed to save offline. Storage may be full.');
+        }
+      }
+    } catch (error: any) {
+      console.error('Park order error:', error);
+      messageApi.error(error.message || "Failed to park order");
+    }
+  }, [
+    hasCashDrawer, 
+    cart, 
+    orderType, 
+    tableNumber, 
+    currentParkedId, 
+    isOnline, 
+    parkSale, 
+    saveOffline, 
+    currentUser, 
+    totalAmount, 
+    offlineParkedSales, 
+    messageApi
+  ]);
+
+  const handleOpenPayment = useCallback(() => {
+    // Validation checks
     if (!hasCashDrawer) {
       messageApi.error("Please open cash drawer first");
       setCashDrawerModalOpen(true);
@@ -345,9 +487,10 @@ const PointOfSale = () => {
 
     setPaymentModalOpen(true);
     setAmountPaid(0);
-  };
+  }, [hasCashDrawer, cart.length, orderType, tableNumber, messageApi]);
 
-  const handleCheckout = async () => {
+  const handleCheckout = useCallback(async () => {
+    // Validation checks
     if (!hasCashDrawer) {
       messageApi.error("Please open cash drawer first");
       setCashDrawerModalOpen(true);
@@ -403,19 +546,36 @@ const PointOfSale = () => {
         // Clear cart and close modal
         handleClearCart();
         setPaymentModalOpen(false);
+        setAmountPaid(0);
+        setPaymentMethod("CASH");
         
         messageApi.info("💾 Sale saved offline. Will sync when online.");
       }
     } catch (error: any) {
+      console.error('Checkout error:', error);
       messageApi.error(error.message || "Failed to process checkout");
     }
-  };
+  }, [
+    hasCashDrawer,
+    amountPaid,
+    totalAmount,
+    cart,
+    currentParkedId,
+    orderType,
+    tableNumber,
+    paymentMethod,
+    isOnline,
+    checkoutSale,
+    saveOffline,
+    handleClearCart,
+    messageApi
+  ]);
 
-  const handleAddBill = (billValue: number) => {
+  const handleAddBill = useCallback((billValue: number) => {
     setAmountPaid((prev) => prev + billValue);
-  };
+  }, []);
 
-  const handleLoadParked = (parked: Sale) => {
+  const handleLoadParked = useCallback((parked: Sale) => {
     // Convert parked sale items to cart products
     const cartItems: CartProduct[] = parked.saleItems?.map((item: any) => ({
       ...item.product,
@@ -429,35 +589,40 @@ const PointOfSale = () => {
     setCurrentParkedId(parked._id);
     setParkedDrawerOpen(false);
     messageApi.success("Parked order loaded");
-  };
+  }, [messageApi]);
 
-  const handleDeleteParked = (id: string, orderNo: string) => {
+  const handleDeleteParked = useCallback((id: string, orderNo: string) => {
     setVoidingSaleId(id);
     setVoidingOrderNo(orderNo);
     setVoidModalOpen(true);
-  };
+  }, []);
 
-  const handleVoidSuccess = () => {
+  const handleVoidSuccess = useCallback(() => {
     refetchParked();
     setVoidModalOpen(false);
     setVoidingSaleId(null);
     setVoidingOrderNo(null);
-  };
+  }, [refetchParked]);
 
-  const handleOpenCashDrawer = async () => {
+  const handleOpenCashDrawer = useCallback(async () => {
     if (openingBalance < 0) {
       messageApi.error("Opening balance must be at least 0");
       return;
     }
 
-    await openCashDrawer({
-      variables: {
-        openingBalance,
-      },
-    });
-  };
+    try {
+      await openCashDrawer({
+        variables: {
+          openingBalance,
+        },
+      });
+    } catch (error: any) {
+      console.error('Failed to open cash drawer:', error);
+      messageApi.error(error.message || 'Failed to open cash drawer');
+    }
+  }, [openingBalance, openCashDrawer, messageApi]);
 
-  const handlePrintBill = () => {
+  const handlePrintBill = useCallback(() => {
     if (cart.length === 0) {
       messageApi.warning("Cart is empty");
       return;
@@ -469,23 +634,77 @@ const PointOfSale = () => {
       return;
     }
 
-    const printWindow = window.open("", "_blank");
-    if (printWindow) {
-      printWindow.document.write(
-        generateBillHTML(
-          cart,
-          totalAmount,
-          orderType,
-          tableNumber,
-          currentParkedId
-            ? parkedSales.find((s: Sale) => s._id === currentParkedId)?.orderNo
-            : null
-        )
-      );
-      printWindow.document.close();
-      printWindow.print();
+    try {
+      const printWindow = window.open("", "_blank");
+      if (printWindow) {
+        printWindow.document.write(
+          generateBillHTML(
+            cart,
+            totalAmount,
+            orderType,
+            tableNumber,
+            currentParkedId
+              ? parkedSales.find((s: Sale) => s._id === currentParkedId)?.orderNo
+              : null
+          )
+        );
+        printWindow.document.close();
+        printWindow.print();
+      } else {
+        messageApi.error("Failed to open print window. Please check your popup blocker.");
+      }
+    } catch (error) {
+      console.error('Print error:', error);
+      messageApi.error("Failed to print bill");
     }
-  };
+  }, [cart, orderType, tableNumber, totalAmount, currentParkedId, parkedSales, messageApi]);
+
+  // Keyboard shortcuts for common actions (F2=Park, F3=Pay, F4=Parked Orders, ESC=Clear)
+  useEffect(() => {
+    const handleKeyPress = (e: KeyboardEvent) => {
+      // Don't trigger shortcuts if user is typing in an input or modal is open
+      if (
+        e.target instanceof HTMLInputElement ||
+        e.target instanceof HTMLTextAreaElement ||
+        paymentModalOpen ||
+        tableModalOpen ||
+        parkedDrawerOpen
+      ) {
+        return;
+      }
+
+      // F2 - Park order
+      if (e.key === 'F2') {
+        e.preventDefault();
+        handlePark();
+      }
+      // F3 - Open payment
+      else if (e.key === 'F3') {
+        e.preventDefault();
+        handleOpenPayment();
+      }
+      // F4 - Show parked orders
+      else if (e.key === 'F4') {
+        e.preventDefault();
+        setParkedDrawerOpen(true);
+      }
+      // ESC - Clear cart (with confirmation)
+      else if (e.key === 'Escape' && cart.length > 0) {
+        e.preventDefault();
+        Modal.confirm({
+          title: 'Clear Cart?',
+          content: 'Are you sure you want to clear all items from the cart?',
+          okText: 'Yes, Clear',
+          cancelText: 'Cancel',
+          okType: 'danger',
+          onOk: handleClearCart,
+        });
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyPress);
+    return () => window.removeEventListener('keydown', handleKeyPress);
+  }, [cart.length, paymentModalOpen, tableModalOpen, parkedDrawerOpen, handlePark, handleOpenPayment, handleClearCart]);
 
   return (
     <div
@@ -501,6 +720,18 @@ const PointOfSale = () => {
       <div style={{ marginBottom: 12 }}>
         <OfflineSyncStatus showInline />
       </div>
+
+      {/* Keyboard Shortcuts Hint */}
+      <Alert
+        message={
+          <span style={{ fontSize: 12 }}>
+            ⌨️ <strong>Shortcuts:</strong> F2=Park | F3=Pay | F4=Parked Orders | ESC=Clear Cart
+          </span>
+        }
+        type="info"
+        style={{ marginBottom: 12 }}
+        closable
+      />
 
       {/* Cash Drawer Status Alert */}
       {hasCashDrawer && (

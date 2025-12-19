@@ -444,8 +444,9 @@ export const salesResolver = {
 					orderNo = sale.orderNo;
 
 				} else {
-					// Generate orderNo for new parked sale
-					orderNo = await generateOrderNo("PARK");
+					// Generate orderNo for new parked sale with unique suffix to prevent conflicts
+					const random = Math.random().toString(36).substring(2, 8).toUpperCase();
+					orderNo = await generateOrderNo("PARK") + `-${random}`;
 					
 					sale = await Sale.create({
 						totalAmount: 0,
@@ -455,6 +456,8 @@ export const salesResolver = {
 						orderNo,
 						orderType,
 						tableNumber: orderType === "DINE_IN" ? tableNumber : null,
+						cashierId: context.user.id,
+						cashierName: context.user.username,
 					});
 				}
 
@@ -677,8 +680,9 @@ export const salesResolver = {
 
 					sale = await Sale.findById(id);
 				} else {
-					// Create new completed sale - generate new orderNo
-					orderNo = await generateOrderNo();
+					// Create new completed sale - generate new orderNo with unique suffix
+					const random = Math.random().toString(36).substring(2, 8).toUpperCase();
+					orderNo = await generateOrderNo() + `-${random}`;
 					
 					sale = await Sale.create({
 						totalAmount,
@@ -688,6 +692,8 @@ export const salesResolver = {
 						orderNo,
 						orderType,
 						tableNumber: orderType === "DINE_IN" ? tableNumber : null,
+						cashierId: context.user.id,
+						cashierName: context.user.username,
 					});
 				}
 
@@ -728,7 +734,7 @@ export const salesResolver = {
 			}
 		},
 
-		// Delete/Void parked sale
+		// Delete/Void parked sale (just marks as void, doesn't return inventory since it's still parked)
 		deleteParkedSale: async (_: unknown, { id }: { id: string }, context: any) => {
 			// Check authentication
 			if (!context.user) {
@@ -753,20 +759,261 @@ export const salesResolver = {
 					return errorResponse("Can only void parked sales");
 				}
 
+				// Return ingredients to inventory when voiding parked sale
+				console.log("Voiding parked sale - returning ingredients to inventory");
+				const saleItems = await SaleItem.find({ saleId: id });
+
+				for (const saleItem of saleItems) {
+					const product = await Product.findById(saleItem.productId);
+					if (!product) continue;
+
+					const quantitySold = saleItem.quantity;
+					const ingredients = await ProductIngredient.find({ productId: product._id });
+
+					for (const ingredient of ingredients) {
+						const quantityToReturn = ingredient.quantityUsed * quantitySold;
+						
+						await Item.findByIdAndUpdate(ingredient.itemId, {
+							$inc: { quantity: quantityToReturn }
+						});
+
+						console.log(`Returned ${quantityToReturn} units to inventory (parked sale void)`);
+					}
+				}
+
 				// Mark as voided instead of deleting
 				await Sale.findByIdAndUpdate(id, {
 					status: "VOID",
 					isDeleted: true,
 				});
 
-				return successResponse("Parked sale voided successfully", null);
+				return successResponse("Parked sale voided and ingredients returned to inventory", null);
 			} catch (err) {
 				console.error("Error voiding parked sale:", err);
 				return errorResponse("Failed to void parked sale");
 			}
 		},
 
-		// Void completed sale
+		// Refund completed sale (only for COMPLETED sales, returns ingredients to inventory)
+		refundSale: async (_: unknown, { id, refundReason }: { id: string; refundReason: string }, context: any) => {
+			// Check authentication
+			if (!context.user) {
+				throw new Error("Authentication required");
+			}
+
+			// Check permissions
+			const userPermissions = context.user.permissions || {};
+			const userRole = context.user.role;
+
+			if (userRole !== 'SUPER_ADMIN' && !userPermissions.transaction?.includes('refund')) {
+				throw new Error("Insufficient permissions to refund sales");
+			}
+
+			try {
+				console.log("Refunding sale - ID:", JSON.stringify(id), "Reason:", refundReason);
+				
+				const sale = await Sale.findById(id);
+
+				if (!sale) {
+					console.error("Sale not found:", id);
+					return errorResponse("Sale not found");
+				}
+
+				if (sale.status !== "COMPLETED") {
+					console.error("Can only refund completed sales, current status:", sale.status);
+					return errorResponse("Can only refund completed sales");
+				}
+
+				if (sale.isDeleted) {
+					console.error("Sale already refunded or voided:", id);
+					return errorResponse("Sale is already refunded or voided");
+				}
+
+				console.log("Returning ingredients to inventory for refund");
+				
+				const saleItems = await SaleItem.find({ saleId: id });
+
+				for (const saleItem of saleItems) {
+					const product = await Product.findById(saleItem.productId);
+					if (!product) continue;
+
+					const quantitySold = saleItem.quantity;
+					const ingredients = await ProductIngredient.find({ productId: product._id });
+
+					for (const ingredient of ingredients) {
+						const quantityToReturn = ingredient.quantityUsed * quantitySold;
+						
+						await Item.findByIdAndUpdate(ingredient.itemId, {
+							$inc: { quantity: quantityToReturn }
+						});
+
+						const item = await Item.findById(ingredient.itemId);
+						console.log(`Returned ${quantityToReturn} units of ${item?.name || 'unknown'} to inventory`);
+					}
+				}
+
+				// Remove sale amount from cash drawer
+				const openDrawer = await CashDrawer.findOne({ status: "OPEN" }).sort({ openedAt: -1 });
+				if (openDrawer) {
+					openDrawer.transactions.push({
+						type: "REFUND",
+						amount: -sale.totalAmount,
+						description: `Refund for Sale ${sale.orderNo}`,
+						saleId: sale._id,
+						paymentMethod: "CASH",
+					} as any);
+					await openDrawer.save();
+				}
+
+				console.log("Marking sale as VOID with refund reason");
+				await Sale.findByIdAndUpdate(id, {
+					status: "VOID",
+					voidReason: `REFUND: ${refundReason}`,
+					isDeleted: true,
+				});
+
+				console.log("Sale refunded successfully, ingredients returned to inventory");
+				return successResponse("Sale refunded successfully and ingredients returned to inventory", null);
+			} catch (err: any) {
+				console.error("Error refunding sale:", err);
+				return errorResponse(err.message || "Failed to refund sale");
+			}
+		},
+
+		// Change item in a COMPLETED sale (swap one item for another)
+		changeItem: async (
+			_: unknown,
+			{ saleId, oldSaleItemId, newProductId, newQuantity, reason }: { 
+				saleId: string; 
+				oldSaleItemId: string; 
+				newProductId: string; 
+				newQuantity: number;
+				reason: string;
+			},
+			context: any
+		) => {
+			// Check authentication
+			if (!context.user) {
+				throw new Error("Authentication required");
+			}
+
+			// Check permissions
+			const userPermissions = context.user.permissions || {};
+			const userRole = context.user.role;
+
+			if (userRole !== 'SUPER_ADMIN' && !userPermissions.transaction?.includes('changeItem')) {
+				throw new Error("Insufficient permissions to change sale items");
+			}
+
+			try {
+				console.log("Changing item - Sale ID:", saleId, "Old Item:", oldSaleItemId, "New Product:", newProductId);
+				
+				const sale = await Sale.findById(saleId);
+
+				if (!sale) {
+					return errorResponse("Sale not found");
+				}
+
+				if (sale.status !== "COMPLETED") {
+					return errorResponse("Can only change items in completed sales");
+				}
+
+				// Get the old sale item
+				const oldSaleItem = await SaleItem.findById(oldSaleItemId);
+				if (!oldSaleItem) {
+					return errorResponse("Sale item not found");
+				}
+
+				const oldProduct = await Product.findById(oldSaleItem.productId);
+				if (!oldProduct) {
+					return errorResponse("Old product not found");
+				}
+
+				// Return old product ingredients to inventory
+				console.log("Returning old product ingredients to inventory");
+				const oldIngredients = await ProductIngredient.find({ productId: oldProduct._id });
+				for (const ingredient of oldIngredients) {
+					const quantityToReturn = ingredient.quantityUsed * oldSaleItem.quantity;
+					await Item.findByIdAndUpdate(ingredient.itemId, {
+						$inc: { quantity: quantityToReturn }
+					});
+					console.log(`Returned ${quantityToReturn} units (old item)`);
+				}
+
+				// Get new product
+				const newProduct = await Product.findById(newProductId);
+				if (!newProduct) {
+					return errorResponse("New product not found");
+				}
+
+				// Deduct new product ingredients from inventory
+				console.log("Deducting new product ingredients from inventory");
+				const newIngredients = await ProductIngredient.find({ productId: newProduct._id });
+				let newItemCost = 0;
+				
+				for (const ingredient of newIngredients) {
+					const inventoryItem = await Item.findById(ingredient.itemId);
+					if (inventoryItem) {
+						const quantityNeeded = ingredient.quantityUsed * newQuantity;
+						newItemCost += inventoryItem.pricePerUnit * quantityNeeded;
+
+						await Item.findByIdAndUpdate(ingredient.itemId, {
+							$inc: { quantity: -quantityNeeded }
+						});
+						console.log(`Deducted ${quantityNeeded} units (new item)`);
+					}
+				}
+
+				// Update the sale item
+				await SaleItem.findByIdAndUpdate(oldSaleItemId, {
+					productId: newProductId,
+					quantity: newQuantity,
+					priceAtSale: newProduct.price,
+				});
+
+				// Recalculate sale totals
+				const allSaleItems = await SaleItem.find({ saleId });
+				let totalAmount = 0;
+				let costOfGoods = 0;
+
+				for (const item of allSaleItems) {
+					const product = await Product.findById(item.productId);
+					if (product) {
+						totalAmount += product.price * item.quantity;
+						
+						const ingredients = await ProductIngredient.find({ productId: product._id });
+						for (const ingredient of ingredients) {
+							const invItem = await Item.findById(ingredient.itemId);
+							if (invItem) {
+								costOfGoods += invItem.pricePerUnit * ingredient.quantityUsed * item.quantity;
+							}
+						}
+					}
+				}
+
+				const grossProfit = totalAmount - costOfGoods;
+
+				// Update sale totals
+				await Sale.findByIdAndUpdate(saleId, {
+					totalAmount,
+					costOfGoods,
+					grossProfit,
+					voidReason: `ITEM CHANGED: ${reason} (${oldProduct.name} → ${newProduct.name})`,
+				});
+
+				console.log("Item changed successfully");
+				return successResponse(
+					`Item changed from ${oldProduct.name} to ${newProduct.name}. Inventory updated.`,
+					null
+				);
+			} catch (err: any) {
+				console.error("Error changing item:", err);
+				return errorResponse(err.message || "Failed to change item");
+			}
+		},
+
+		// Void completed sale (DEPRECATED - use refundSale instead for completed sales)
+		// This is kept for backward compatibility but will show a warning
 		voidSale: async (_: unknown, { id, voidReason }: { id: string; voidReason: string }, context: any) => {
 			// Check authentication
 			if (!context.user) {
@@ -777,31 +1024,20 @@ export const salesResolver = {
 			const userPermissions = context.user.permissions || {};
 			const userRole = context.user.role;
 
-			if (userRole !== 'SUPER_ADMIN' && !userPermissions.transaction?.includes('void')) {
+			if (userRole !== 'SUPER_ADMIN' && !userPermissions.transaction?.includes('void') && !userPermissions.transaction?.includes('refund')) {
 				throw new Error("Insufficient permissions to void sales");
 			}
 
 			try {
-				console.log("Voiding sale - ID:", JSON.stringify(id), "Type:", typeof id, "Length:", id?.length, "Reason:", voidReason);
+				console.log("⚠️ voidSale is deprecated. Use refundSale for completed sales.");
+				console.log("Voiding sale - ID:", JSON.stringify(id), "Reason:", voidReason);
 				
-				// Validate ObjectId
 				if (!id) {
 					console.error("Invalid sale ID - no ID provided:", id);
 					return errorResponse("Invalid sale ID");
 				}
 
-				const sale = await Sale.findById(id).populate({
-					path: 'saleItems',
-					populate: {
-						path: 'product',
-						populate: {
-							path: 'ingredientsUsed',
-							populate: {
-								path: 'item'
-							}
-						}
-					}
-				});
+				const sale = await Sale.findById(id);
 
 				if (!sale) {
 					console.error("Sale not found:", id);
@@ -813,37 +1049,18 @@ export const salesResolver = {
 					return errorResponse("Sale is already voided");
 				}
 
-				console.log("Returning ingredients to inventory");
-				// Return ingredients to inventory
-				for (const saleItem of sale.saleItems) {
-					const product = saleItem.product;
-					const quantitySold = saleItem.quantity;
-
-					// Return ingredients used
-					if (product.ingredientsUsed && product.ingredientsUsed.length > 0) {
-						for (const ingredient of product.ingredientsUsed) {
-							const quantityToReturn = ingredient.quantityUsed * quantitySold;
-							
-							// Update item quantity (return stock)
-							await Item.findByIdAndUpdate(ingredient.itemId, {
-								$inc: { quantity: quantityToReturn }
-							});
-
-							console.log(`Returned ${quantityToReturn} units of ${ingredient.item.name} to inventory`);
-						}
-					}
-				}
-
-				console.log("Updating sale to VOID status");
-				// Update sale status to VOID
-				const result = await Sale.findByIdAndUpdate(id, {
+				// For backward compatibility, void without returning inventory
+				// Recommend using refundSale instead
+				console.log("Voiding sale WITHOUT returning inventory (use refundSale to return inventory)");
+				
+				await Sale.findByIdAndUpdate(id, {
 					status: "VOID",
 					voidReason,
 					isDeleted: true,
 				});
 
-				console.log("Sale voided successfully, ingredients returned to inventory");
-				return successResponse("Sale voided successfully and ingredients returned to inventory", null);
+				console.log("Sale voided (inventory NOT returned). Use refundSale to return inventory.");
+				return successResponse("Sale voided. Note: Inventory was NOT returned. Use refund for inventory return.", null);
 			} catch (err: any) {
 				console.error("Error voiding sale:", err);
 				return errorResponse(err.message || "Failed to void sale");
@@ -938,159 +1155,6 @@ export const salesResolver = {
 			} catch (err: any) {
 				console.error("Error recording sale:", err);
 				return errorResponse(err.message || "Failed to record sale");
-			}
-		},
-
-		changeItem: async (
-			_: unknown,
-			{
-				saleId,
-				saleItemId,
-				newProductId,
-				newQuantity,
-			}: {
-				saleId: string;
-				saleItemId: string;
-				newProductId: string;
-				newQuantity: number;
-			},
-			context: any
-		) => {
-			// Check authentication
-			if (!context.user) {
-				throw new Error("Authentication required");
-			}
-
-			// Check permissions
-			const userPermissions = context.user.permissions || {};
-			const userRole = context.user.role;
-
-			if (
-				userRole !== "SUPER_ADMIN" &&
-				!userPermissions.transaction?.includes("addEdit")
-			) {
-				throw new Error("Insufficient permissions to change items");
-			}
-
-			try {
-				// Get the sale and verify it's completed
-				const sale = await Sale.findById(saleId);
-				if (!sale) {
-					return errorResponse("Sale not found");
-				}
-
-				if (sale.status !== "COMPLETED") {
-					return errorResponse("Can only change items in completed sales");
-				}
-
-				// Get the original sale item
-				const originalSaleItem = await SaleItem.findById(saleItemId).populate("productId");
-				if (!originalSaleItem) {
-					return errorResponse("Sale item not found");
-				}
-
-				// Get the original product with ingredients
-				const originalProduct = await Product.findById(originalSaleItem.productId).populate({
-					path: "ingredientsUsed",
-				});
-				if (!originalProduct) {
-					return errorResponse("Original product not found");
-				}
-
-				// Get the new product with ingredients
-				const newProduct = await Product.findById(newProductId);
-				if (!newProduct) {
-					return errorResponse("New product not found");
-				}
-
-				// Return original product's ingredients to inventory
-				const originalIngredients = await ProductIngredient.find({
-					productId: originalProduct._id,
-				});
-
-				for (const ingredient of originalIngredients) {
-					const quantityToReturn = ingredient.quantityUsed * originalSaleItem.quantity;
-					await Item.findByIdAndUpdate(ingredient.itemId, {
-						$inc: { quantity: quantityToReturn },
-					});
-					console.log(
-						`Returned ${quantityToReturn} of item ${ingredient.itemId} from original product`
-					);
-				}
-
-				// Deduct new product's ingredients from inventory
-				const newIngredients = await ProductIngredient.find({
-					productId: newProductId,
-				});
-
-				let newItemCost = 0;
-				for (const ingredient of newIngredients) {
-					const inventoryItem = await Item.findById(ingredient.itemId);
-					if (!inventoryItem) {
-						return errorResponse(`Ingredient item ${ingredient.itemId} not found`);
-					}
-
-					const quantityNeeded = ingredient.quantityUsed * newQuantity;
-					newItemCost += inventoryItem.pricePerUnit * quantityNeeded;
-
-					// Deduct from inventory
-					await Item.findByIdAndUpdate(ingredient.itemId, {
-						$inc: { quantity: -quantityNeeded },
-					});
-					console.log(
-						`Deducted ${quantityNeeded} of item ${ingredient.itemId} for new product`
-					);
-				}
-
-				// Calculate cost difference
-				const originalItemCost = await calculateItemCost(
-					originalProduct._id.toString(),
-					originalSaleItem.quantity
-				);
-				const costDifference = newItemCost - originalItemCost;
-
-				// Calculate price difference
-				const originalTotal = originalSaleItem.priceAtSale * originalSaleItem.quantity;
-				const newTotal = newProduct.price * newQuantity;
-				const priceDifference = newTotal - originalTotal;
-
-				// Update the sale item
-				await SaleItem.findByIdAndUpdate(saleItemId, {
-					productId: newProductId,
-					quantity: newQuantity,
-					priceAtSale: newProduct.price,
-				});
-
-				// Update the sale totals
-				const updatedSale = await Sale.findByIdAndUpdate(
-					saleId,
-					{
-						$inc: {
-							totalAmount: priceDifference,
-							costOfGoods: costDifference,
-							grossProfit: priceDifference - costDifference,
-						},
-					},
-					{ new: true }
-				);
-
-				// If there's a price difference, update cash drawer
-				if (priceDifference !== 0) {
-					const drawer = await CashDrawer.findOne({ status: "OPEN" }).sort({ createdAt: -1 });
-					if (drawer) {
-						await CashDrawer.findByIdAndUpdate(drawer._id, {
-							$inc: { cashAmount: priceDifference },
-						});
-					}
-				}
-
-				return successResponse(
-					`Item changed successfully. Price difference: ₱${priceDifference.toFixed(2)}`,
-					updatedSale
-				);
-			} catch (err: any) {
-				console.error("Error changing item:", err);
-				return errorResponse(err.message || "Failed to change item");
 			}
 		},
 	},

@@ -25,6 +25,10 @@ const itemSchema = new mongoose.Schema(
 			type: Boolean,
 			default: true,
 		},
+		version: {
+			type: Number,
+			default: 0,
+		},
 	},
 	{
 		timestamps: true,

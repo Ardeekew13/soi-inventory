@@ -12,7 +12,7 @@ import { ApolloClient } from '@apollo/client';
 
 export interface OfflineTransaction {
   id: string; // Local UUID
-  type: 'SALE' | 'CASH_DRAWER' | 'SHIFT_EVENT';
+  type: 'SALE' | 'CASH_DRAWER' | 'SHIFT_EVENT' | 'PARKED_SALE';
   data: any;
   timestamp: number;
   synced: boolean;
@@ -213,6 +213,14 @@ export class OfflineSync {
         const { CHECKOUT_SALE } = await import('@/graphql/inventory/point-of-sale');
         await apolloClient.mutate({
           mutation: CHECKOUT_SALE,
+          variables: transaction.data,
+        });
+        break;
+
+      case 'PARKED_SALE':
+        const { PARK_SALE } = await import('@/graphql/inventory/point-of-sale');
+        await apolloClient.mutate({
+          mutation: PARK_SALE,
           variables: transaction.data,
         });
         break;

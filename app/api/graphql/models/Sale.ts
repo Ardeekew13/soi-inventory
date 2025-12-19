@@ -47,6 +47,15 @@ const saleSchema = new mongoose.Schema(
       type: String,
       default: null,
     },
+    cashierId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      default: null,
+    },
+    cashierName: {
+      type: String,
+      default: "",
+    },
     isDeleted: {
       type: Boolean,
       required: true,

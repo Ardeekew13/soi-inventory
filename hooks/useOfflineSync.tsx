@@ -67,11 +67,11 @@ export function useOfflineSync() {
       const result = await offlineSync.syncPendingTransactions(apolloClient);
       
       if (result.success > 0) {
-        message.success(`✅ Synced ${result.success} transactions`);
+        message.success(`Synced ${result.success} transactions`);
       }
       
       if (result.failed > 0) {
-        message.error(`❌ Failed to sync ${result.failed} transactions. Will retry.`);
+        message.error(`Failed to sync ${result.failed} transactions. Will retry.`);
       }
 
       setPendingCount(offlineSync.getPendingCount());
@@ -84,7 +84,7 @@ export function useOfflineSync() {
     }
   };
 
-  const saveOffline = async (type: 'SALE' | 'CASH_DRAWER' | 'SHIFT_EVENT', data: any) => {
+  const saveOffline = async (type: 'SALE' | 'CASH_DRAWER' | 'SHIFT_EVENT' | 'PARKED_SALE', data: any) => {
     const id = await offlineSync.saveOfflineTransaction(type, data);
     setPendingCount(offlineSync.getPendingCount());
     
