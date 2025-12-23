@@ -4,7 +4,7 @@ const cashTransactionSchema = new mongoose.Schema(
   {
     type: {
       type: String,
-      enum: ["CASH_IN", "CASH_OUT", "SALE", "OPENING", "CLOSING"],
+      enum: ["CASH_IN", "CASH_OUT", "SALE", "OPENING", "CLOSING", "REFUND", "VOID"],
       required: true,
     },
     amount: {

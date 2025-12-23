@@ -6,6 +6,14 @@ export const saleTypeDefs = gql`
     TAKE_OUT
   }
 
+  enum SaleStatus {
+    PARKED
+    COMPLETED
+    VOID
+    REFUNDED
+    ITEM_CHANGED
+  }
+
   type Sale {
     _id: ID!
     id: ID!
@@ -54,6 +62,36 @@ export const saleTypeDefs = gql`
     quantity: Int!
   }
 
+  type PaymentMethodStat {
+    paymentMethod: String!
+    totalAmount: Float!
+    count: Int!
+  }
+
+  type CategoryStat {
+    category: String!
+    totalAmount: Float!
+    count: Int!
+  }
+
+  type ItemStat {
+    itemName: String!
+    totalAmount: Float!
+    quantity: Int!
+  }
+
+  type CashierStat {
+    cashierName: String!
+    totalAmount: Float!
+    count: Int!
+  }
+
+  type HourlyStat {
+    hour: String!
+    totalAmount: Float!
+    count: Int!
+  }
+
   type SaleReportGroup {
     grossProfit: Float
     totalCostOfGoods: Float
@@ -65,6 +103,15 @@ export const saleTypeDefs = gql`
     availableYears: [Int!]!
     topProductSold: [TopProduct!]!
     groupSales: [MonthlySaleReport!]!
+    salesByPaymentMethod: [PaymentMethodStat!]!
+    totalRefunds: Float
+    numberOfRefunds: Int
+    salesByItem: [ItemStat!]!
+    salesByCashier: [CashierStat!]!
+    salesByHour: [HourlyStat!]!
+    numberOfTransactions: Int
+    totalDiscounts: Float
+    totalNetSales: Float
   }
 
   type MonthlySaleReport {

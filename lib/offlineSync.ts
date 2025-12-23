@@ -28,6 +28,9 @@ export class OfflineSync {
   private isOnline: boolean = true;
   private syncInProgress: boolean = false;
   private listeners: Array<(status: boolean) => void> = [];
+  private lastNetworkLog: string = '';
+  private lastNetworkLogTime: number = 0;
+  private readonly LOG_DEBOUNCE_MS = 1000; // Prevent duplicate logs within 1 second
 
   constructor() {
     if (typeof window !== 'undefined') {
@@ -37,18 +40,31 @@ export class OfflineSync {
   }
 
   /**
+   * Log message only if it hasn't been logged recently (debounce)
+   */
+  private debouncedLog(message: string) {
+    const now = Date.now();
+    if (this.lastNetworkLog === message && (now - this.lastNetworkLogTime) < this.LOG_DEBOUNCE_MS) {
+      return; // Skip duplicate log
+    }
+    console.log(message);
+    this.lastNetworkLog = message;
+    this.lastNetworkLogTime = now;
+  }
+
+  /**
    * Setup network status listeners
    */
   private setupNetworkListeners() {
     window.addEventListener('online', () => {
-      console.log('🟢 Network back online - starting sync...');
+      this.debouncedLog('🟢 Network back online - starting sync...');
       this.isOnline = true;
       this.notifyListeners(true);
       this.syncPendingTransactions();
     });
 
     window.addEventListener('offline', () => {
-      console.log('🔴 Network offline - switching to offline mode');
+      this.debouncedLog('🔴 Network offline - switching to offline mode');
       this.isOnline = false;
       this.notifyListeners(false);
     });
@@ -100,7 +116,7 @@ export class OfflineSync {
       window.dispatchEvent(new CustomEvent('offline-sync-update'));
     }
 
-    console.log(`💾 Saved offline transaction: ${transaction.id}`);
+    this.debouncedLog(`💾 Saved offline transaction: ${transaction.id}`);
     return transaction.id;
   }
 
@@ -137,12 +153,12 @@ export class OfflineSync {
     total: number;
   }> {
     if (this.syncInProgress) {
-      console.log('⏳ Sync already in progress, skipping...');
+      this.debouncedLog('⏳ Sync already in progress, skipping...');
       return { success: 0, failed: 0, total: 0 };
     }
 
     if (!this.isOnline) {
-      console.log('🔴 Cannot sync - still offline');
+      this.debouncedLog('🔴 Cannot sync - still offline');
       return { success: 0, failed: 0, total: 0 };
     }
 
@@ -157,7 +173,7 @@ export class OfflineSync {
       return { success: 0, failed: 0, total: 0 };
     }
 
-    console.log(`🔄 Syncing ${pending.length} offline transactions...`);
+    this.debouncedLog(`🔄 Syncing ${pending.length} offline transactions...`);
 
     let success = 0;
     let failed = 0;
@@ -168,7 +184,7 @@ export class OfflineSync {
         transaction.synced = true;
         transaction.attempts++;
         success++;
-        console.log(`✅ Synced: ${transaction.id}`);
+        this.debouncedLog(`✅ Synced: ${transaction.id}`);
       } catch (error: any) {
         transaction.attempts++;
         transaction.lastError = error.message;
@@ -191,7 +207,7 @@ export class OfflineSync {
     this.saveLastSyncTime();
 
     this.syncInProgress = false;
-    console.log(`✨ Sync complete: ${success} success, ${failed} failed`);
+    this.debouncedLog(`✨ Sync complete: ${success} success, ${failed} failed`);
 
     return { success, failed, total: pending.length };
   }

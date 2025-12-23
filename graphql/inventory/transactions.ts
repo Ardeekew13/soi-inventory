@@ -14,6 +14,7 @@ export const GET_SALES = gql`
       costOfGoods
       grossProfit
       saleItems {
+        _id
         priceAtSale
         product {
           id

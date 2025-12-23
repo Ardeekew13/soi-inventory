@@ -16,9 +16,17 @@ export const cashDrawerResolvers = {
   },
 
   Query: {
-    currentCashDrawer: async () => {
+    currentCashDrawer: async (_: unknown, __: unknown, context: any) => {
       try {
-        const drawer = await CashDrawer.findOne({ status: "OPEN" }).sort({ openedAt: -1 });
+        const query: any = { status: "OPEN" };
+        
+        // Cashiers can only see their own drawer
+        const userRole = context?.user?.role;
+        if (userRole === 'CASHIER') {
+          query.openedByUserId = context.user.id;
+        }
+        
+        const drawer = await CashDrawer.findOne(query).sort({ openedAt: -1 });
         return drawer;
       } catch (err: any) {
         console.error("Error fetching current cash drawer:", err);
@@ -26,9 +34,17 @@ export const cashDrawerResolvers = {
       }
     },
 
-    cashDrawerHistory: async (_: unknown, { limit = 10 }: { limit?: number }) => {
+    cashDrawerHistory: async (_: unknown, { limit = 10 }: { limit?: number }, context: any) => {
       try {
-        const drawers = await CashDrawer.find({ status: "CLOSED" })
+        const query: any = { status: "CLOSED" };
+        
+        // Cashiers can only see their own drawer history
+        const userRole = context?.user?.role;
+        if (userRole === 'CASHIER') {
+          query.openedByUserId = context.user.id;
+        }
+        
+        const drawers = await CashDrawer.find(query)
           .sort({ closedAt: -1 })
           .limit(limit);
         return drawers;
@@ -316,8 +332,12 @@ export const cashDrawerResolvers = {
       const totalSales = parent.transactions
         .filter((t: any) => t.type === "SALE")
         .reduce((sum: number, t: any) => sum + t.amount, 0);
+      
+      const totalRefundsAndVoids = parent.transactions
+        .filter((t: any) => t.type === "REFUND" || t.type === "VOID")
+        .reduce((sum: number, t: any) => sum + t.amount, 0); // amounts are already negative
 
-      return totalCashIn + totalSales - totalCashOut;
+      return totalCashIn + totalSales + totalRefundsAndVoids - totalCashOut;
     },
 
     totalCashIn: (parent: any) => {
@@ -366,6 +386,18 @@ export const cashDrawerResolvers = {
       return parent.transactions
         .filter((t: any) => t.type === "SALE" && t.paymentMethod === "GCASH")
         .reduce((sum: number, t: any) => sum + t.amount, 0);
+    },
+
+    totalRefunds: (parent: any) => {
+      return Math.abs(parent.transactions
+        .filter((t: any) => t.type === "REFUND")
+        .reduce((sum: number, t: any) => sum + t.amount, 0));
+    },
+
+    totalVoids: (parent: any) => {
+      return Math.abs(parent.transactions
+        .filter((t: any) => t.type === "VOID")
+        .reduce((sum: number, t: any) => sum + t.amount, 0));
     },
   },
 };

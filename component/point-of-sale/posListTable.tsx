@@ -2,6 +2,7 @@ import { CartProduct, pesoFormatter } from "@/utils/helper";
 import { Button, InputNumber, Table, TableProps } from "antd";
 import { MessageInstance } from "antd/es/message/interface";
 import { useState } from "react";
+import { useMediaQuery } from "react-responsive";
 import RemoveItemConfirmModal from "./dialog/removeItemConfirmModal";
 
 interface IProps {
@@ -15,6 +16,11 @@ const PosListTable = (props: IProps) => {
 	const { cart, setCart, messageApi, hasOrderNo } = props;
 	const [removeModalOpen, setRemoveModalOpen] = useState(false);
 	const [itemToRemove, setItemToRemove] = useState<CartProduct | null>(null);
+	
+	// Responsive breakpoints
+	const isMobile = useMediaQuery({ maxWidth: 767 });
+	const isTablet = useMediaQuery({ minWidth: 768, maxWidth: 1023 });
+	const isDesktop = useMediaQuery({ minWidth: 1024 });
 
 	const handleRemoveToCart = (record: CartProduct) => {
 		if (hasOrderNo) {
@@ -47,25 +53,40 @@ const PosListTable = (props: IProps) => {
 			title: "Name",
 			dataIndex: "name",
 			key: "name",
-			width: "50%",
-			fixed: "left",
+			ellipsis: true,
+			render: (name: string, record: CartProduct) => (
+				<div>
+					<div style={{ 
+						fontWeight: 500, 
+						fontSize: isMobile ? 13 : 14,
+						wordBreak: 'break-word'
+					}}>
+						{name}
+					</div>
+					{isMobile && (
+						<div style={{ fontSize: 11, color: '#888', marginTop: 2 }}>
+							₱{record.price.toFixed(2)} × {record.quantity} = ₱{(record.price * record.quantity).toFixed(2)}
+						</div>
+					)}
+				</div>
+			),
 		},
 		{
-			title: "Quantity",
+			title: "Qty",
 			key: "quantity",
-			width: "15%",
+			width: isMobile ? 70 : isTablet ? 90 : 100,
+			align: "center",
 			render: (_, record: CartProduct) => {
 				return (
-					<>
-						<InputNumber
-							min={1}
-							value={record?.quantity}
-							style={{ width: 50 }}
-							onChange={(value) => {
-								handleQuantityChange(record?._id, value ?? 0);
-							}}
-						/>
-					</>
+					<InputNumber
+						min={1}
+						value={record?.quantity}
+						size={isMobile ? "small" : "middle"}
+						style={{ width: isMobile ? 55 : 70 }}
+						onChange={(value) => {
+							handleQuantityChange(record?._id, value ?? 0);
+						}}
+					/>
 				);
 			},
 		},
@@ -74,28 +95,39 @@ const PosListTable = (props: IProps) => {
 			dataIndex: "price",
 			key: "price",
 			align: "right",
-			width: "15%",
-			render: (pricePerUnit: number) => pesoFormatter(pricePerUnit),
+			width: 80,
+			responsive: ['md'] as any,
+			render: (pricePerUnit: number) => (
+				<span style={{ fontSize: 13 }}>
+					{pesoFormatter(pricePerUnit)}
+				</span>
+			),
 		},
 		{
-			title: "Total Price",
+			title: "Total",
 			dataIndex: "price",
-			key: "price",
+			key: "totalPrice",
 			align: "right",
-			width: "15%",
+			width: isMobile ? 0 : isTablet ? 90 : 100,
+			responsive: isMobile ? ['sm'] as any : undefined,
 			render: (pricePerUnit: number, record: CartProduct) => {
 				return (
-					<span style={{ fontWeight: "bold" }}>
+					<span style={{ 
+						fontWeight: "bold", 
+						fontSize: isMobile ? 13 : 14,
+						color: '#1890ff'
+					}}>
 						{pesoFormatter(pricePerUnit * (record?.quantity ?? 0))}
 					</span>
 				);
 			},
 		},
 		{
-			title: "Action",
+			title: "",
 			key: "action",
-			width: "10%",
+			width: isMobile ? 55 : 85,
 			align: "center",
+			fixed: isMobile ? undefined : "right",
 			render: (_, record: CartProduct) => {
 				return (
 					<Button
@@ -105,7 +137,7 @@ const PosListTable = (props: IProps) => {
 							handleRemoveToCart(record);
 						}}
 					>
-						Remove
+						{isMobile ? '✕' : 'Remove'}
 					</Button>
 				);
 			},
@@ -115,15 +147,18 @@ const PosListTable = (props: IProps) => {
 	return (
 		<div className="full">
 			<Table
-				showHeader={false}
+				showHeader={!isMobile}
 				rowKey={(record: CartProduct) => record?._id?.toString() ?? ''}
 				columns={column}
-				size="middle"
+				size={isMobile ? "small" : "middle"}
 				bordered={false}
 				dataSource={cart as CartProduct[]}
-				scroll={{ x: "max-content" }}
+				scroll={{ x: isMobile ? 350 : undefined }}
 				pagination={{
-					pageSize: 10,
+					pageSize: isMobile ? 4 : isTablet ? 6 : 8,
+					simple: isMobile,
+					size: "small",
+					showSizeChanger: false,
 				}}
 			/>
 			<RemoveItemConfirmModal

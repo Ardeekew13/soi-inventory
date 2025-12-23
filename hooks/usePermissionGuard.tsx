@@ -26,7 +26,9 @@ export const usePermissionGuard = ({
   redirectTo = "/dashboard",
 }: UsePermissionGuardOptions) => {
   const router = useRouter();
-  const { data: meData, loading: meLoading } = useQuery<Query>(ME_QUERY);
+  const { data: meData, loading: meLoading } = useQuery<Query>(ME_QUERY, {
+    fetchPolicy: "network-only", // Always fetch fresh data to prevent stale cache issues
+  });
   
   const userPermissions = meData?.me?.permissions || {};
   const userRole = meData?.me?.role;
@@ -60,7 +62,10 @@ export const usePermissionGuard = ({
 
     // Redirect if no access
     if (!hasAccess) {
-      router.replace(redirectTo);
+      // Only redirect if redirectTo is provided (not empty string)
+      if (redirectTo) {
+        router.replace(redirectTo);
+      }
     }
   }, [meData, meLoading, userRole, userPermissions, module, action, anyActions, redirectTo, router]);
 

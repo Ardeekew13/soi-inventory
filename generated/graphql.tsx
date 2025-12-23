@@ -56,7 +56,9 @@ export type CashDrawer = {
   status: DrawerStatus;
   totalCashIn: Scalars['Float']['output'];
   totalCashOut: Scalars['Float']['output'];
+  totalRefunds: Scalars['Float']['output'];
   totalSales: Scalars['Float']['output'];
+  totalVoids: Scalars['Float']['output'];
   transactions: Array<CashTransaction>;
   updatedAt: Scalars['String']['output'];
 };
@@ -79,6 +81,20 @@ export type CashTransaction = {
   type: TransactionType;
   user?: Maybe<User>;
   userId?: Maybe<Scalars['ID']['output']>;
+};
+
+export type CashierStat = {
+  __typename?: 'CashierStat';
+  cashierName: Scalars['String']['output'];
+  count: Scalars['Int']['output'];
+  totalAmount: Scalars['Float']['output'];
+};
+
+export type CategoryStat = {
+  __typename?: 'CategoryStat';
+  category: Scalars['String']['output'];
+  count: Scalars['Int']['output'];
+  totalAmount: Scalars['Float']['output'];
 };
 
 export type CollectionStats = {
@@ -165,6 +181,13 @@ export type EmployeeShift = {
   userId: Scalars['ID']['output'];
 };
 
+export type HourlyStat = {
+  __typename?: 'HourlyStat';
+  count: Scalars['Int']['output'];
+  hour: Scalars['String']['output'];
+  totalAmount: Scalars['Float']['output'];
+};
+
 export type Item = {
   __typename?: 'Item';
   _id: Scalars['ID']['output'];
@@ -183,6 +206,13 @@ export type ItemResultResponse = {
   data?: Maybe<Item>;
   message?: Maybe<Scalars['String']['output']>;
   success: Scalars['Boolean']['output'];
+};
+
+export type ItemStat = {
+  __typename?: 'ItemStat';
+  itemName: Scalars['String']['output'];
+  quantity: Scalars['Int']['output'];
+  totalAmount: Scalars['Float']['output'];
 };
 
 export type ItemsResponse = {
@@ -406,12 +436,6 @@ export type MutationRefundSaleArgs = {
 };
 
 
-export type MutationVoidParkedSaleArgs = {
-  id: Scalars['ID']['input'];
-  voidReason: Scalars['String']['input'];
-};
-
-
 export type MutationSendToKitchenArgs = {
   itemIds: Array<Scalars['ID']['input']>;
   saleId: Scalars['ID']['input'];
@@ -453,6 +477,12 @@ export type MutationVerifyPasswordArgs = {
 };
 
 
+export type MutationVoidParkedSaleArgs = {
+  id: Scalars['ID']['input'];
+  voidReason: Scalars['String']['input'];
+};
+
+
 export type MutationVoidSaleArgs = {
   id: Scalars['ID']['input'];
   voidReason: Scalars['String']['input'];
@@ -470,6 +500,13 @@ export enum PaymentMethod {
   Credit = 'CREDIT',
   Gcash = 'GCASH'
 }
+
+export type PaymentMethodStat = {
+  __typename?: 'PaymentMethodStat';
+  count: Scalars['Int']['output'];
+  paymentMethod: Scalars['String']['output'];
+  totalAmount: Scalars['Float']['output'];
+};
 
 export type Product = {
   __typename?: 'Product';
@@ -640,6 +677,8 @@ export type RecordShiftEventInput = {
 export type Sale = {
   __typename?: 'Sale';
   _id: Scalars['ID']['output'];
+  cashierId?: Maybe<Scalars['ID']['output']>;
+  cashierName?: Maybe<Scalars['String']['output']>;
   costOfGoods: Scalars['Float']['output'];
   createdAt: Scalars['String']['output'];
   customerName?: Maybe<Scalars['String']['output']>;
@@ -677,11 +716,20 @@ export type SaleReportGroup = {
   grossProfit?: Maybe<Scalars['Float']['output']>;
   grossProfitPercentage?: Maybe<Scalars['Float']['output']>;
   groupSales: Array<MonthlySaleReport>;
+  numberOfRefunds?: Maybe<Scalars['Int']['output']>;
+  numberOfTransactions?: Maybe<Scalars['Int']['output']>;
+  salesByCashier: Array<CashierStat>;
+  salesByHour: Array<HourlyStat>;
+  salesByItem: Array<ItemStat>;
+  salesByPaymentMethod: Array<PaymentMethodStat>;
   topProductSold: Array<TopProduct>;
   totalAmountSales?: Maybe<Scalars['Float']['output']>;
   totalCostOfGoods?: Maybe<Scalars['Float']['output']>;
   totalCostPercentage?: Maybe<Scalars['Float']['output']>;
+  totalDiscounts?: Maybe<Scalars['Float']['output']>;
   totalItemsSold?: Maybe<Scalars['Float']['output']>;
+  totalNetSales?: Maybe<Scalars['Float']['output']>;
+  totalRefunds?: Maybe<Scalars['Float']['output']>;
   totalSalesPercentage?: Maybe<Scalars['Float']['output']>;
 };
 
@@ -696,6 +744,14 @@ export type SaleResponse = {
   success: Scalars['Boolean']['output'];
   totalAmount: Scalars['Float']['output'];
 };
+
+export enum SaleStatus {
+  Completed = 'COMPLETED',
+  ItemChanged = 'ITEM_CHANGED',
+  Parked = 'PARKED',
+  Refunded = 'REFUNDED',
+  Void = 'VOID'
+}
 
 export type ServiceCharge = {
   __typename?: 'ServiceCharge';
@@ -759,7 +815,9 @@ export enum TransactionType {
   CashOut = 'CASH_OUT',
   Closing = 'CLOSING',
   Opening = 'OPENING',
-  Sale = 'SALE'
+  Refund = 'REFUND',
+  Sale = 'SALE',
+  Void = 'VOID'
 }
 
 export type UpdateShiftScheduleInput = {
@@ -854,16 +912,6 @@ export type AddCashOutMutationVariables = Exact<{
 
 export type AddCashOutMutation = { __typename?: 'Mutation', addCashOut: { __typename?: 'CashDrawerResponse', success: boolean, message: string, data?: { __typename?: 'CashDrawer', _id: string, currentBalance: number, totalCashOut: number } | null } };
 
-export type ChangeItemMutationVariables = Exact<{
-  saleId: Scalars['ID']['input'];
-  saleItemId: Scalars['ID']['input'];
-  newProductId: Scalars['ID']['input'];
-  newQuantity: Scalars['Float']['input'];
-}>;
-
-
-export type ChangeItemMutation = { __typename?: 'Mutation', changeItem: { __typename?: 'DeletionResult', success: boolean, message?: string | null } };
-
 export type SaleReportQueryVariables = Exact<{
   startDate?: InputMaybe<Scalars['String']['input']>;
   endDate?: InputMaybe<Scalars['String']['input']>;
@@ -871,7 +919,7 @@ export type SaleReportQueryVariables = Exact<{
 }>;
 
 
-export type SaleReportQuery = { __typename?: 'Query', saleReport?: { __typename?: 'SaleReportGroup', totalAmountSales?: number | null, totalCostOfGoods?: number | null, grossProfit?: number | null, totalItemsSold?: number | null, totalSalesPercentage?: number | null, totalCostPercentage?: number | null, grossProfitPercentage?: number | null, availableYears: Array<number>, topProductSold: Array<{ __typename?: 'TopProduct', name: string, quantity: number }>, groupSales: Array<{ __typename?: 'MonthlySaleReport', month?: string | null, totalAmountSales?: number | null, totalCostOfGoods?: number | null, grossProfit?: number | null, totalItemsSold?: number | null }> } | null };
+export type SaleReportQuery = { __typename?: 'Query', saleReport?: { __typename?: 'SaleReportGroup', totalAmountSales?: number | null, totalCostOfGoods?: number | null, grossProfit?: number | null, totalItemsSold?: number | null, totalSalesPercentage?: number | null, totalCostPercentage?: number | null, grossProfitPercentage?: number | null, availableYears: Array<number>, numberOfTransactions?: number | null, totalDiscounts?: number | null, totalNetSales?: number | null, totalRefunds?: number | null, numberOfRefunds?: number | null, topProductSold: Array<{ __typename?: 'TopProduct', name: string, quantity: number }>, groupSales: Array<{ __typename?: 'MonthlySaleReport', month?: string | null, totalAmountSales?: number | null, totalCostOfGoods?: number | null, grossProfit?: number | null, totalItemsSold?: number | null }>, salesByPaymentMethod: Array<{ __typename?: 'PaymentMethodStat', paymentMethod: string, totalAmount: number, count: number }>, salesByItem: Array<{ __typename?: 'ItemStat', itemName: string, totalAmount: number, quantity: number }>, salesByCashier: Array<{ __typename?: 'CashierStat', cashierName: string, totalAmount: number, count: number }>, salesByHour: Array<{ __typename?: 'HourlyStat', hour: string, totalAmount: number, count: number }> } | null };
 
 export type GetItemsQueryVariables = Exact<{
   search?: InputMaybe<Scalars['String']['input']>;
@@ -880,7 +928,7 @@ export type GetItemsQueryVariables = Exact<{
 }>;
 
 
-export type GetItemsQuery = { __typename?: 'Query', itemsList: { __typename?: 'ItemsResponse', totalCount: number, items: Array<{ __typename?: 'Item', _id: string, name: string, unit: string, pricePerUnit: number, currentStock: number, updatedAt: string, createdAt: string }> } };
+export type GetItemsQuery = { __typename?: 'Query', itemsList: { __typename?: 'ItemsResponse', totalCount: number, items: Array<{ __typename?: 'Item', _id: string, name: string, unit: string, pricePerUnit: number, currentStock: number, updatedAt: string, createdAt: string, isActive: boolean }> } };
 
 export type AddItemMutationVariables = Exact<{
   id?: InputMaybe<Scalars['ID']['input']>;
@@ -971,7 +1019,7 @@ export type ProductsQueryVariables = Exact<{
 }>;
 
 
-export type ProductsQuery = { __typename?: 'Query', productsList: { __typename?: 'ProductResponse', totalCount: number, products: Array<{ __typename?: 'Product', _id: string, name: string, price: number, createdAt: string, updatedAt: string, ingredientsUsed: Array<{ __typename?: 'ProductIngredient', _id: string, productId: string, itemId: string, quantityUsed: number, item: { __typename?: 'Item', _id: string, name: string, unit: string, pricePerUnit: number } }> }> } };
+export type ProductsQuery = { __typename?: 'Query', productsList: { __typename?: 'ProductResponse', totalCount: number, products: Array<{ __typename?: 'Product', _id: string, name: string, price: number, createdAt: string, updatedAt: string, ingredientsUsed: Array<{ __typename?: 'ProductIngredient', _id: string, productId: string, itemId: string, quantityUsed: number, item: { __typename?: 'Item', _id: string, name: string, unit: string, pricePerUnit: number, isActive: boolean } }> }> } };
 
 export type AddProductMutationVariables = Exact<{
   id?: InputMaybe<Scalars['ID']['input']>;
@@ -1018,7 +1066,7 @@ export type SalesQueryVariables = Exact<{
 }>;
 
 
-export type SalesQuery = { __typename?: 'Query', sales: Array<{ __typename?: 'Sale', _id: string, tableNumber?: string | null, orderNo?: string | null, createdAt: string, id: string, orderType?: OrderType | null, status: string, costOfGoods: number, grossProfit: number, totalAmount: number, saleItems: Array<{ __typename?: 'SaleItem', priceAtSale: number, productId: string, quantity: number, product?: { __typename?: 'Product', id: string, name: string, price: number, updatedAt: string, createdAt: string } | null }> }> };
+export type SalesQuery = { __typename?: 'Query', sales: Array<{ __typename?: 'Sale', _id: string, tableNumber?: string | null, orderNo?: string | null, createdAt: string, id: string, orderType?: OrderType | null, status: string, costOfGoods: number, grossProfit: number, totalAmount: number, saleItems: Array<{ __typename?: 'SaleItem', _id: string, priceAtSale: number, productId: string, quantity: number, product?: { __typename?: 'Product', id: string, name: string, price: number, updatedAt: string, createdAt: string } | null }> }> };
 
 export type VoidSaleMutationVariables = Exact<{
   id: Scalars['ID']['input'];
@@ -1027,6 +1075,25 @@ export type VoidSaleMutationVariables = Exact<{
 
 
 export type VoidSaleMutation = { __typename?: 'Mutation', voidSale: { __typename?: 'DeletionResult', success: boolean, message?: string | null } };
+
+export type RefundSaleMutationVariables = Exact<{
+  id: Scalars['ID']['input'];
+  refundReason: Scalars['String']['input'];
+}>;
+
+
+export type RefundSaleMutation = { __typename?: 'Mutation', refundSale: { __typename?: 'DeletionResult', success: boolean, message?: string | null } };
+
+export type ChangeItemMutationVariables = Exact<{
+  saleId: Scalars['ID']['input'];
+  oldSaleItemId: Scalars['ID']['input'];
+  newProductId: Scalars['ID']['input'];
+  newQuantity: Scalars['Float']['input'];
+  reason: Scalars['String']['input'];
+}>;
+
+
+export type ChangeItemMutation = { __typename?: 'Mutation', changeItem: { __typename?: 'DeletionResult', success: boolean, message?: string | null } };
 
 export type LoginMutationVariables = Exact<{
   username: Scalars['String']['input'];
@@ -1543,48 +1610,6 @@ export function useAddCashOutMutation(baseOptions?: Apollo.MutationHookOptions<A
 export type AddCashOutMutationHookResult = ReturnType<typeof useAddCashOutMutation>;
 export type AddCashOutMutationResult = Apollo.MutationResult<AddCashOutMutation>;
 export type AddCashOutMutationOptions = Apollo.BaseMutationOptions<AddCashOutMutation, AddCashOutMutationVariables>;
-export const ChangeItemDocument = gql`
-    mutation ChangeItem($saleId: ID!, $saleItemId: ID!, $newProductId: ID!, $newQuantity: Float!) {
-  changeItem(
-    saleId: $saleId
-    saleItemId: $saleItemId
-    newProductId: $newProductId
-    newQuantity: $newQuantity
-  ) {
-    success
-    message
-  }
-}
-    `;
-export type ChangeItemMutationFn = Apollo.MutationFunction<ChangeItemMutation, ChangeItemMutationVariables>;
-
-/**
- * __useChangeItemMutation__
- *
- * To run a mutation, you first call `useChangeItemMutation` within a React component and pass it any options that fit your needs.
- * When your component renders, `useChangeItemMutation` returns a tuple that includes:
- * - A mutate function that you can call at any time to execute the mutation
- * - An object with fields that represent the current status of the mutation's execution
- *
- * @param baseOptions options that will be passed into the mutation, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options-2;
- *
- * @example
- * const [changeItemMutation, { data, loading, error }] = useChangeItemMutation({
- *   variables: {
- *      saleId: // value for 'saleId'
- *      saleItemId: // value for 'saleItemId'
- *      newProductId: // value for 'newProductId'
- *      newQuantity: // value for 'newQuantity'
- *   },
- * });
- */
-export function useChangeItemMutation(baseOptions?: Apollo.MutationHookOptions<ChangeItemMutation, ChangeItemMutationVariables>) {
-        const options = {...defaultOptions, ...baseOptions}
-        return Apollo.useMutation<ChangeItemMutation, ChangeItemMutationVariables>(ChangeItemDocument, options);
-      }
-export type ChangeItemMutationHookResult = ReturnType<typeof useChangeItemMutation>;
-export type ChangeItemMutationResult = Apollo.MutationResult<ChangeItemMutation>;
-export type ChangeItemMutationOptions = Apollo.BaseMutationOptions<ChangeItemMutation, ChangeItemMutationVariables>;
 export const SaleReportDocument = gql`
     query SaleReport($startDate: String, $endDate: String, $year: String) {
   saleReport(startDate: $startDate, endDate: $endDate, year: $year) {
@@ -1596,6 +1621,9 @@ export const SaleReportDocument = gql`
     totalCostPercentage
     grossProfitPercentage
     availableYears
+    numberOfTransactions
+    totalDiscounts
+    totalNetSales
     topProductSold {
       name
       quantity
@@ -1606,6 +1634,28 @@ export const SaleReportDocument = gql`
       totalCostOfGoods
       grossProfit
       totalItemsSold
+    }
+    salesByPaymentMethod {
+      paymentMethod
+      totalAmount
+      count
+    }
+    totalRefunds
+    numberOfRefunds
+    salesByItem {
+      itemName
+      totalAmount
+      quantity
+    }
+    salesByCashier {
+      cashierName
+      totalAmount
+      count
+    }
+    salesByHour {
+      hour
+      totalAmount
+      count
     }
   }
 }
@@ -1656,6 +1706,7 @@ export const GetItemsDocument = gql`
       currentStock
       updatedAt
       createdAt
+      isActive
     }
     totalCount
   }
@@ -2171,6 +2222,7 @@ export const ProductsDocument = gql`
           name
           unit
           pricePerUnit
+          isActive
         }
       }
       createdAt
@@ -2477,6 +2529,7 @@ export const SalesDocument = gql`
     costOfGoods
     grossProfit
     saleItems {
+      _id
       priceAtSale
       product {
         id
@@ -2560,6 +2613,85 @@ export function useVoidSaleMutation(baseOptions?: Apollo.MutationHookOptions<Voi
 export type VoidSaleMutationHookResult = ReturnType<typeof useVoidSaleMutation>;
 export type VoidSaleMutationResult = Apollo.MutationResult<VoidSaleMutation>;
 export type VoidSaleMutationOptions = Apollo.BaseMutationOptions<VoidSaleMutation, VoidSaleMutationVariables>;
+export const RefundSaleDocument = gql`
+    mutation refundSale($id: ID!, $refundReason: String!) {
+  refundSale(id: $id, refundReason: $refundReason) {
+    success
+    message
+  }
+}
+    `;
+export type RefundSaleMutationFn = Apollo.MutationFunction<RefundSaleMutation, RefundSaleMutationVariables>;
+
+/**
+ * __useRefundSaleMutation__
+ *
+ * To run a mutation, you first call `useRefundSaleMutation` within a React component and pass it any options that fit your needs.
+ * When your component renders, `useRefundSaleMutation` returns a tuple that includes:
+ * - A mutate function that you can call at any time to execute the mutation
+ * - An object with fields that represent the current status of the mutation's execution
+ *
+ * @param baseOptions options that will be passed into the mutation, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options-2;
+ *
+ * @example
+ * const [refundSaleMutation, { data, loading, error }] = useRefundSaleMutation({
+ *   variables: {
+ *      id: // value for 'id'
+ *      refundReason: // value for 'refundReason'
+ *   },
+ * });
+ */
+export function useRefundSaleMutation(baseOptions?: Apollo.MutationHookOptions<RefundSaleMutation, RefundSaleMutationVariables>) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useMutation<RefundSaleMutation, RefundSaleMutationVariables>(RefundSaleDocument, options);
+      }
+export type RefundSaleMutationHookResult = ReturnType<typeof useRefundSaleMutation>;
+export type RefundSaleMutationResult = Apollo.MutationResult<RefundSaleMutation>;
+export type RefundSaleMutationOptions = Apollo.BaseMutationOptions<RefundSaleMutation, RefundSaleMutationVariables>;
+export const ChangeItemDocument = gql`
+    mutation changeItem($saleId: ID!, $oldSaleItemId: ID!, $newProductId: ID!, $newQuantity: Float!, $reason: String!) {
+  changeItem(
+    saleId: $saleId
+    oldSaleItemId: $oldSaleItemId
+    newProductId: $newProductId
+    newQuantity: $newQuantity
+    reason: $reason
+  ) {
+    success
+    message
+  }
+}
+    `;
+export type ChangeItemMutationFn = Apollo.MutationFunction<ChangeItemMutation, ChangeItemMutationVariables>;
+
+/**
+ * __useChangeItemMutation__
+ *
+ * To run a mutation, you first call `useChangeItemMutation` within a React component and pass it any options that fit your needs.
+ * When your component renders, `useChangeItemMutation` returns a tuple that includes:
+ * - A mutate function that you can call at any time to execute the mutation
+ * - An object with fields that represent the current status of the mutation's execution
+ *
+ * @param baseOptions options that will be passed into the mutation, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options-2;
+ *
+ * @example
+ * const [changeItemMutation, { data, loading, error }] = useChangeItemMutation({
+ *   variables: {
+ *      saleId: // value for 'saleId'
+ *      oldSaleItemId: // value for 'oldSaleItemId'
+ *      newProductId: // value for 'newProductId'
+ *      newQuantity: // value for 'newQuantity'
+ *      reason: // value for 'reason'
+ *   },
+ * });
+ */
+export function useChangeItemMutation(baseOptions?: Apollo.MutationHookOptions<ChangeItemMutation, ChangeItemMutationVariables>) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useMutation<ChangeItemMutation, ChangeItemMutationVariables>(ChangeItemDocument, options);
+      }
+export type ChangeItemMutationHookResult = ReturnType<typeof useChangeItemMutation>;
+export type ChangeItemMutationResult = Apollo.MutationResult<ChangeItemMutation>;
+export type ChangeItemMutationOptions = Apollo.BaseMutationOptions<ChangeItemMutation, ChangeItemMutationVariables>;
 export const LoginDocument = gql`
     mutation Login($username: String!, $password: String!) {
   login(username: $username, password: $password) {

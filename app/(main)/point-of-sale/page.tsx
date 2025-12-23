@@ -47,6 +47,7 @@ import {
 import dayjs from "dayjs";
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
+import { useMediaQuery } from "react-responsive";
 
 const PointOfSale = () => {
   // Permission guard - will redirect if no access
@@ -57,11 +58,18 @@ const PointOfSale = () => {
 
   const [messageApi, contextHolder] = message.useMessage();
   const router = useRouter();
-  
+
+  // Responsive breakpoints
+  const isMobile = useMediaQuery({ maxWidth: 767 });
+  const isSmall = useMediaQuery({ maxWidth: 575 });
+  const isTablet = useMediaQuery({ maxWidth: 991 });
+
   // Get current user data
-  const { data: meData } = useQuery<Query>(ME_QUERY);
+  const { data: meData } = useQuery<Query>(ME_QUERY, {
+    fetchPolicy: "network-only", // Always fetch fresh data to prevent stale cache issues
+  });
   const currentUser = meData?.me;
-  
+
   // Offline sync hook
   const { isOnline, saveOffline } = useOfflineSync();
 
@@ -121,21 +129,21 @@ const PointOfSale = () => {
   useEffect(() => {
     const loadOfflineParkedSales = () => {
       try {
-        const stored = localStorage.getItem('offline_parked_sales');
+        const stored = localStorage.getItem("offline_parked_sales");
         if (stored) {
           const parsed = JSON.parse(stored);
           // Validate the parsed data is an array
           if (Array.isArray(parsed)) {
             setOfflineParkedSales(parsed);
           } else {
-            console.warn('Invalid offline parked sales data, resetting...');
-            localStorage.removeItem('offline_parked_sales');
+            console.warn("Invalid offline parked sales data, resetting...");
+            localStorage.removeItem("offline_parked_sales");
           }
         }
       } catch (error) {
-        console.error('Failed to load offline parked sales:', error);
+        console.error("Failed to load offline parked sales:", error);
         // Clear corrupted data
-        localStorage.removeItem('offline_parked_sales');
+        localStorage.removeItem("offline_parked_sales");
       }
     };
 
@@ -150,7 +158,7 @@ const PointOfSale = () => {
         refetchParked().then(() => {
           // Clear offline parked sales as they should be synced
           setOfflineParkedSales([]);
-          localStorage.removeItem('offline_parked_sales');
+          localStorage.removeItem("offline_parked_sales");
         });
       }, 2000);
 
@@ -174,6 +182,9 @@ const PointOfSale = () => {
           setCashDrawerModalOpen(false);
           setOpeningBalance(0);
           refetchCashDrawer();
+        } else {
+          messageApi.error(data.openCashDrawer.message);
+          return;
         }
       },
       onError: (error) => messageApi.error(error.message),
@@ -181,6 +192,9 @@ const PointOfSale = () => {
   );
 
   const [parkSale, { loading: parkLoading }] = useMutation(PARK_SALE, {
+    // Refetch queries to update all related data
+    refetchQueries: ["GET_PARKED_SALES", "GET_SALES"],
+    awaitRefetchQueries: true,
     onCompleted: async (data) => {
       if (data?.parkSale?.success) {
         messageApi.success(data.parkSale.message);
@@ -224,6 +238,9 @@ const PointOfSale = () => {
   const [checkoutSale, { loading: checkoutLoading }] = useMutation(
     CHECKOUT_SALE,
     {
+      // Refetch queries to update transactions page
+      refetchQueries: ["GET_SALES", "GET_PARKED_SALES"],
+      awaitRefetchQueries: true,
       onCompleted: (data) => {
         if (data?.checkoutSale?.success) {
           const saleData = data.checkoutSale.data;
@@ -266,56 +283,87 @@ const PointOfSale = () => {
   );
 
   // Memoized data extractions for performance
-  const products = useMemo(() => data?.productsList?.products || [], [data?.productsList?.products]);
-  const onlineParkedSales = useMemo(() => parkedData?.parkedSales || [], [parkedData?.parkedSales]);
-  const discounts = useMemo(() => discountsData?.discounts || [], [discountsData?.discounts]);
-  const serviceCharges = useMemo(() => serviceChargesData?.serviceCharges || [], [serviceChargesData?.serviceCharges]);
-  
+  const products = useMemo(
+    () => data?.productsList?.products || [],
+    [data?.productsList?.products]
+  );
+  const onlineParkedSales = useMemo(
+    () => parkedData?.parkedSales || [],
+    [parkedData?.parkedSales]
+  );
+  const discounts = useMemo(
+    () => discountsData?.discounts || [],
+    [discountsData?.discounts]
+  );
+  const serviceCharges = useMemo(
+    () => serviceChargesData?.serviceCharges || [],
+    [serviceChargesData?.serviceCharges]
+  );
+
   // Merge online and offline parked sales (memoized)
-  const parkedSales = useMemo(() => 
-    [...onlineParkedSales, ...offlineParkedSales],
+  const parkedSales = useMemo(
+    () => [...onlineParkedSales, ...offlineParkedSales],
     [onlineParkedSales, offlineParkedSales]
   );
 
-  const hasCashDrawer = useMemo(() => 
-    !!cashDrawerData?.currentCashDrawer,
+  const hasCashDrawer = useMemo(
+    () => !!cashDrawerData?.currentCashDrawer,
     [cashDrawerData?.currentCashDrawer]
   );
 
   // Memoized calculations for cart totals
-  const { subtotal, discountAmount, serviceChargeAmount, totalAmount } = useMemo(() => {
-    const selectedDiscount = discounts.find((d: any) => d._id === selectedDiscountId);
-    const selectedServiceCharge = serviceCharges.find((sc: any) => sc._id === selectedServiceChargeId);
+  const { subtotal, discountAmount, serviceChargeAmount, totalAmount } =
+    useMemo(() => {
+      const selectedDiscount = discounts.find(
+        (d: any) => d._id === selectedDiscountId
+      );
+      const selectedServiceCharge = serviceCharges.find(
+        (sc: any) => sc._id === selectedServiceChargeId
+      );
 
-    // Calculate subtotal (cart items)
-    const subtotal = cart.reduce((acc, item) => acc + item.price * item.quantity, 0);
+      // Calculate subtotal (cart items)
+      const subtotal = cart.reduce(
+        (acc, item) => acc + item.price * item.quantity,
+        0
+      );
 
-    // Calculate discount amount
-    const discountAmount = selectedDiscount ? (subtotal * selectedDiscount.value) / 100 : 0;
+      // Calculate discount amount
+      const discountAmount = selectedDiscount
+        ? (subtotal * selectedDiscount.value) / 100
+        : 0;
 
-    // Calculate amount after discount
-    const amountAfterDiscount = subtotal - discountAmount;
+      // Calculate amount after discount
+      const amountAfterDiscount = subtotal - discountAmount;
 
-    // Calculate service charge amount (applied to amount after discount)
-    const serviceChargeAmount = selectedServiceCharge 
-      ? (amountAfterDiscount * selectedServiceCharge.value) / 100 
-      : 0;
+      // Calculate service charge amount (applied to amount after discount)
+      const serviceChargeAmount = selectedServiceCharge
+        ? (amountAfterDiscount * selectedServiceCharge.value) / 100
+        : 0;
 
-    // Final total amount
-    const totalAmount = amountAfterDiscount + serviceChargeAmount;
+      // Final total amount
+      const totalAmount = amountAfterDiscount + serviceChargeAmount;
 
-    return { subtotal, discountAmount, serviceChargeAmount, totalAmount };
-  }, [cart, selectedDiscountId, selectedServiceChargeId, discounts, serviceCharges]);
+      return { subtotal, discountAmount, serviceChargeAmount, totalAmount };
+    }, [
+      cart,
+      selectedDiscountId,
+      selectedServiceChargeId,
+      discounts,
+      serviceCharges,
+    ]);
 
-  const change = useMemo(() => amountPaid - totalAmount, [amountPaid, totalAmount]);
+  const change = useMemo(
+    () => amountPaid - totalAmount,
+    [amountPaid, totalAmount]
+  );
 
-  const selectedDiscount = useMemo(() => 
-    discounts.find((d: any) => d._id === selectedDiscountId),
+  const selectedDiscount = useMemo(
+    () => discounts.find((d: any) => d._id === selectedDiscountId),
     [discounts, selectedDiscountId]
   );
-  
-  const selectedServiceCharge = useMemo(() => 
-    serviceCharges.find((sc: any) => sc._id === selectedServiceChargeId),
+
+  const selectedServiceCharge = useMemo(
+    () => serviceCharges.find((sc: any) => sc._id === selectedServiceChargeId),
     [serviceCharges, selectedServiceChargeId]
   );
 
@@ -344,21 +392,24 @@ const PointOfSale = () => {
     setTableNumber(table);
   }, []);
 
-  const handleSendToKitchen = useCallback(async (itemIds: string[]) => {
-    if (!currentParkedSale) return;
+  const handleSendToKitchen = useCallback(
+    async (itemIds: string[]) => {
+      if (!currentParkedSale) return;
 
-    try {
-      await sendToKitchen({
-        variables: {
-          saleId: currentParkedSale._id,
-          itemIds,
-        },
-      });
-    } catch (error: any) {
-      console.error('Failed to send to kitchen:', error);
-      messageApi.error(error.message || 'Failed to send items to kitchen');
-    }
-  }, [currentParkedSale, sendToKitchen, messageApi]);
+      try {
+        await sendToKitchen({
+          variables: {
+            saleId: currentParkedSale._id,
+            itemIds,
+          },
+        });
+      } catch (error: any) {
+        console.error("Failed to send to kitchen:", error);
+        messageApi.error(error.message || "Failed to send items to kitchen");
+      }
+    },
+    [currentParkedSale, sendToKitchen, messageApi]
+  );
 
   const handlePark = useCallback(async () => {
     // Validation checks
@@ -399,27 +450,32 @@ const PointOfSale = () => {
         });
       } else {
         // Offline: Save locally for later sync
-        await saveOffline('PARKED_SALE', parkInput);
-        
+        await saveOffline("PARKED_SALE", parkInput);
+
         // Create offline parked sale for local state with unique ID to prevent conflicts
-        const cashierId = currentUser?._id?.slice(-4) || '0000';
+        const cashierId = currentUser?._id?.slice(-4) || "0000";
         const random = Math.random().toString(36).substring(2, 8).toUpperCase();
         const offlineOrderNo = `PARK-${cashierId}-${Date.now()}-${random}`;
-        
+
         const offlineParkedSale = {
           _id: `offline-${Date.now()}-${random}`,
           totalAmount,
           orderNo: offlineOrderNo,
           orderType,
           tableNumber: orderType === OrderType.DineIn ? tableNumber : null,
-          items: cart.map((item) => ({
+          saleItems: cart.map((item) => ({
             _id: item._id,
             productId: item._id,
             quantity: item.quantity,
-            productName: item.name,
-            productPrice: item.price,
+            quantityPrinted: 0, // Add quantityPrinted field
+            priceAtSale: item.price,
+            product: {
+              _id: item._id,
+              name: item.name,
+              price: item.price,
+            },
           })),
-          status: 'PARKED',
+          status: "PARKED",
           costOfGoods: 0,
           grossProfit: 0,
           createdAt: new Date().toISOString(),
@@ -430,40 +486,46 @@ const PointOfSale = () => {
 
         // Save to localStorage with error handling
         try {
-          const updatedOfflineParkedSales = [...offlineParkedSales, offlineParkedSale];
+          const updatedOfflineParkedSales = [
+            ...offlineParkedSales,
+            offlineParkedSale,
+          ];
           setOfflineParkedSales(updatedOfflineParkedSales);
-          localStorage.setItem('offline_parked_sales', JSON.stringify(updatedOfflineParkedSales));
+          localStorage.setItem(
+            "offline_parked_sales",
+            JSON.stringify(updatedOfflineParkedSales)
+          );
 
           // Add to local parked sales
           setCurrentParkedId(offlineParkedSale._id);
           setCurrentParkedSale(offlineParkedSale);
-          
+
           // Show kitchen receipt
           setKitchenReceiptOpen(true);
-          
+
           messageApi.info("💾 Order parked offline. Will sync when online.");
         } catch (storageError) {
-          console.error('Failed to save to localStorage:', storageError);
-          messageApi.error('Failed to save offline. Storage may be full.');
+          console.error("Failed to save to localStorage:", storageError);
+          messageApi.error("Failed to save offline. Storage may be full.");
         }
       }
     } catch (error: any) {
-      console.error('Park order error:', error);
+      console.error("Park order error:", error);
       messageApi.error(error.message || "Failed to park order");
     }
   }, [
-    hasCashDrawer, 
-    cart, 
-    orderType, 
-    tableNumber, 
-    currentParkedId, 
-    isOnline, 
-    parkSale, 
-    saveOffline, 
-    currentUser, 
-    totalAmount, 
-    offlineParkedSales, 
-    messageApi
+    hasCashDrawer,
+    cart,
+    orderType,
+    tableNumber,
+    currentParkedId,
+    isOnline,
+    parkSale,
+    saveOffline,
+    currentUser,
+    totalAmount,
+    offlineParkedSales,
+    messageApi,
   ]);
 
   const handleOpenPayment = useCallback(() => {
@@ -524,35 +586,30 @@ const PointOfSale = () => {
         });
       } else {
         // Offline: Save locally for later sync
-        await saveOffline('SALE', saleInput);
-        
+        await saveOffline("SALE", saleInput);
+
         // Simulate successful checkout for UI
         const offlineOrderNo = `OFFLINE-${Date.now()}`;
         const receiptDate = dayjs().format("MMMM D, YYYY h:mm A");
         const printWindow = window.open("", "_blank");
         if (printWindow) {
           printWindow.document.write(
-            generateReceiptHTML(
-              cart,
-              totalAmount,
-              receiptDate,
-              offlineOrderNo
-            )
+            generateReceiptHTML(cart, totalAmount, receiptDate, offlineOrderNo)
           );
           printWindow.document.close();
           printWindow.print();
         }
-        
+
         // Clear cart and close modal
         handleClearCart();
         setPaymentModalOpen(false);
         setAmountPaid(0);
         setPaymentMethod("CASH");
-        
+
         messageApi.info("💾 Sale saved offline. Will sync when online.");
       }
     } catch (error: any) {
-      console.error('Checkout error:', error);
+      console.error("Checkout error:", error);
       messageApi.error(error.message || "Failed to process checkout");
     }
   }, [
@@ -568,28 +625,31 @@ const PointOfSale = () => {
     checkoutSale,
     saveOffline,
     handleClearCart,
-    messageApi
+    messageApi,
   ]);
 
   const handleAddBill = useCallback((billValue: number) => {
     setAmountPaid((prev) => prev + billValue);
   }, []);
 
-  const handleLoadParked = useCallback((parked: Sale) => {
-    // Convert parked sale items to cart products
-    const cartItems: CartProduct[] = parked.saleItems?.map((item: any) => ({
-      ...item.product,
-      quantity: item.quantity,
-      quantityPrinted: item.quantityPrinted || 0, // Preserve quantityPrinted
-    })) as CartProduct[];
+  const handleLoadParked = useCallback(
+    (parked: Sale) => {
+      // Convert parked sale items to cart products
+      const cartItems: CartProduct[] = parked.saleItems?.map((item: any) => ({
+        ...item.product,
+        quantity: item.quantity,
+        quantityPrinted: item.quantityPrinted || 0, // Preserve quantityPrinted
+      })) as CartProduct[];
 
-    setCart(cartItems);
-    setOrderType(parked.orderType as OrderType);
-    setTableNumber(parked?.tableNumber ?? "");
-    setCurrentParkedId(parked._id);
-    setParkedDrawerOpen(false);
-    messageApi.success("Parked order loaded");
-  }, [messageApi]);
+      setCart(cartItems);
+      setOrderType(parked.orderType as OrderType);
+      setTableNumber(parked?.tableNumber ?? "");
+      setCurrentParkedId(parked._id);
+      setParkedDrawerOpen(false);
+      messageApi.success("Parked order loaded");
+    },
+    [messageApi]
+  );
 
   const handleDeleteParked = useCallback((id: string, orderNo: string) => {
     setVoidingSaleId(id);
@@ -617,8 +677,8 @@ const PointOfSale = () => {
         },
       });
     } catch (error: any) {
-      console.error('Failed to open cash drawer:', error);
-      messageApi.error(error.message || 'Failed to open cash drawer');
+      console.error("Failed to open cash drawer:", error);
+      messageApi.error(error.message || "Failed to open cash drawer");
     }
   }, [openingBalance, openCashDrawer, messageApi]);
 
@@ -644,20 +704,31 @@ const PointOfSale = () => {
             orderType,
             tableNumber,
             currentParkedId
-              ? parkedSales.find((s: Sale) => s._id === currentParkedId)?.orderNo
+              ? parkedSales.find((s: Sale) => s._id === currentParkedId)
+                  ?.orderNo
               : null
           )
         );
         printWindow.document.close();
         printWindow.print();
       } else {
-        messageApi.error("Failed to open print window. Please check your popup blocker.");
+        messageApi.error(
+          "Failed to open print window. Please check your popup blocker."
+        );
       }
     } catch (error) {
-      console.error('Print error:', error);
+      console.error("Print error:", error);
       messageApi.error("Failed to print bill");
     }
-  }, [cart, orderType, tableNumber, totalAmount, currentParkedId, parkedSales, messageApi]);
+  }, [
+    cart,
+    orderType,
+    tableNumber,
+    totalAmount,
+    currentParkedId,
+    parkedSales,
+    messageApi,
+  ]);
 
   // Keyboard shortcuts for common actions (F2=Park, F3=Pay, F4=Parked Orders, ESC=Clear)
   useEffect(() => {
@@ -674,42 +745,50 @@ const PointOfSale = () => {
       }
 
       // F2 - Park order
-      if (e.key === 'F2') {
+      if (e.key === "F2") {
         e.preventDefault();
         handlePark();
       }
       // F3 - Open payment
-      else if (e.key === 'F3') {
+      else if (e.key === "F3") {
         e.preventDefault();
         handleOpenPayment();
       }
       // F4 - Show parked orders
-      else if (e.key === 'F4') {
+      else if (e.key === "F4") {
         e.preventDefault();
         setParkedDrawerOpen(true);
       }
       // ESC - Clear cart (with confirmation)
-      else if (e.key === 'Escape' && cart.length > 0) {
+      else if (e.key === "Escape" && cart.length > 0) {
         e.preventDefault();
         Modal.confirm({
-          title: 'Clear Cart?',
-          content: 'Are you sure you want to clear all items from the cart?',
-          okText: 'Yes, Clear',
-          cancelText: 'Cancel',
-          okType: 'danger',
+          title: "Clear Cart?",
+          content: "Are you sure you want to clear all items from the cart?",
+          okText: "Yes, Clear",
+          cancelText: "Cancel",
+          okType: "danger",
           onOk: handleClearCart,
         });
       }
     };
 
-    window.addEventListener('keydown', handleKeyPress);
-    return () => window.removeEventListener('keydown', handleKeyPress);
-  }, [cart.length, paymentModalOpen, tableModalOpen, parkedDrawerOpen, handlePark, handleOpenPayment, handleClearCart]);
+    window.addEventListener("keydown", handleKeyPress);
+    return () => window.removeEventListener("keydown", handleKeyPress);
+  }, [
+    cart.length,
+    paymentModalOpen,
+    tableModalOpen,
+    parkedDrawerOpen,
+    handlePark,
+    handleOpenPayment,
+    handleClearCart,
+  ]);
 
   return (
     <div
       style={{
-        padding: 20,
+        padding: "12px",
         boxSizing: "border-box",
         overflow: "auto",
       }}
@@ -721,24 +800,12 @@ const PointOfSale = () => {
         <OfflineSyncStatus showInline />
       </div>
 
-      {/* Keyboard Shortcuts Hint */}
-      <Alert
-        message={
-          <span style={{ fontSize: 12 }}>
-            ⌨️ <strong>Shortcuts:</strong> F2=Park | F3=Pay | F4=Parked Orders | ESC=Clear Cart
-          </span>
-        }
-        type="info"
-        style={{ marginBottom: 12 }}
-        closable
-      />
-
       {/* Cash Drawer Status Alert */}
       {hasCashDrawer && (
         <Alert
           message={
-            <Flex justify="space-between" align="center">
-              <span>
+            <Flex justify="space-between" align="center" wrap="wrap" gap={8}>
+              <span style={{ fontSize: isMobile ? 12 : 14 }}>
                 <strong>Cash Drawer Open</strong> - Current Balance:{" "}
                 <strong style={{ color: "#52c41a" }}>
                   ₱
@@ -757,52 +824,64 @@ const PointOfSale = () => {
         />
       )}
 
-      <Row gutter={8} style={{ height: "100%" }}>
-        <Col lg={15} sm={24} style={{ height: "85vh" }}>
-          <ItemCardSection
-            products={products}
-            loading={loading}
-            refetch={refetch}
-            messageApi={messageApi}
-            cart={cart}
-            setCart={setCart}
-            search={search}
-            setSearch={setSearch}
-            parkedOrdersCount={parkedSales.length}
-            onOpenParkedOrders={() => setParkedDrawerOpen(true)}
-          />
+      <Row gutter={[8, 8]}>
+        <Col xs={24} sm={24} md={24} lg={15} xl={15}>
+          <div style={{ height: isTablet ? "auto" : "85vh" }}>
+            <ItemCardSection
+              products={products}
+              loading={loading}
+              refetch={refetch}
+              messageApi={messageApi}
+              cart={cart}
+              setCart={setCart}
+              search={search}
+              setSearch={setSearch}
+              parkedOrdersCount={parkedSales.length}
+              onOpenParkedOrders={() => setParkedDrawerOpen(true)}
+            />
+          </div>
         </Col>
 
-        <Col lg={9} sm={24} style={{ height: "85vh" }}>
-          <CartSection
-            cart={cart}
-            setCart={setCart}
-            messageApi={messageApi}
-            orderType={orderType}
-            tableNumber={tableNumber}
-            currentParkedOrderNo={
-              currentParkedId
-                ? parkedSales.find((s: Sale) => s._id === currentParkedId)
-                    ?.orderNo || "Editing Order"
-                : null
-            }
-            totalAmount={totalAmount}
-            parkLoading={parkLoading}
-            currentParkedId={currentParkedId}
-            onClearCart={handleClearCart}
-            onOrderTypeChange={handleOrderTypeChange}
-            onSelectTable={() => setTableModalOpen(true)}
-            onPark={handlePark}
-            onOpenPayment={handleOpenPayment}
-            onPrintBill={handlePrintBill}
-          />
+        <Col xs={24} sm={24} md={24} lg={9} xl={9}>
+          <div
+            style={{
+              height: isTablet ? "auto" : "85vh",
+              minHeight: isTablet ? "400px" : "auto",
+            }}
+          >
+            <CartSection
+              cart={cart}
+              setCart={setCart}
+              messageApi={messageApi}
+              orderType={orderType}
+              tableNumber={tableNumber}
+              currentParkedOrderNo={
+                currentParkedId
+                  ? parkedSales.find((s: Sale) => s._id === currentParkedId)
+                      ?.orderNo || "Editing Order"
+                  : null
+              }
+              totalAmount={totalAmount}
+              parkLoading={parkLoading}
+              currentParkedId={currentParkedId}
+              onClearCart={handleClearCart}
+              onOrderTypeChange={handleOrderTypeChange}
+              onSelectTable={() => setTableModalOpen(true)}
+              onPark={handlePark}
+              onOpenPayment={handleOpenPayment}
+              onPrintBill={handlePrintBill}
+            />
+          </div>
         </Col>
       </Row>
 
       {/* Payment Modal */}
       <Modal
         title={
-          <Typography.Title level={4} style={{ margin: 0 }}>
+          <Typography.Title
+            level={4}
+            style={{ margin: 0, fontSize: isMobile ? 16 : 20 }}
+          >
             {paymentMethod === "CASH" && "💵 Cash Payment"}
             {paymentMethod === "BANK_TRANSFER" && "🏦 Bank Transfer Payment"}
             {paymentMethod === "CARD" && "💳 Card Payment"}
@@ -818,9 +897,13 @@ const PointOfSale = () => {
           setSelectedServiceChargeId(null);
           setPaymentMethod("CASH");
         }}
-        width={800}
+        width={isMobile ? "95%" : 800}
+        style={{ top: isMobile ? 20 : undefined }}
         footer={
-          <Space style={{ width: "100%", justifyContent: "space-between" }}>
+          <Space
+            style={{ width: "100%", justifyContent: "space-between" }}
+            wrap
+          >
             <Button
               onClick={() => {
                 setPaymentModalOpen(false);
@@ -829,6 +912,7 @@ const PointOfSale = () => {
                 setSelectedServiceChargeId(null);
                 setPaymentMethod("CASH");
               }}
+              block={isSmall}
             >
               Cancel
             </Button>
@@ -838,6 +922,8 @@ const PointOfSale = () => {
               onClick={handleCheckout}
               loading={checkoutLoading}
               disabled={amountPaid < totalAmount}
+              block={isSmall}
+              style={{ marginTop: isSmall ? 8 : 0 }}
             >
               Complete Payment
             </Button>
@@ -847,9 +933,12 @@ const PointOfSale = () => {
         <Space direction="vertical" style={{ width: "100%" }} size={12}>
           {/* Payment Method Selection */}
           <div>
-            <Typography.Text strong>Payment Method:</Typography.Text>
+            <Typography.Text strong style={{ fontSize: isMobile ? 13 : 14 }}>
+              Payment Method:
+            </Typography.Text>
             <Select
               style={{ width: "100%", marginTop: 8 }}
+              size={isMobile ? "middle" : "large"}
               value={paymentMethod}
               onChange={(value) => setPaymentMethod(value)}
               options={[
@@ -864,12 +953,15 @@ const PointOfSale = () => {
 
           <Divider style={{ margin: "4px 0" }} />
 
-          {/* Discount and Service Charge Selection - One Row */}
-          <Row gutter={16}>
-            <Col span={12}>
-              <Typography.Text strong>Discount (Optional):</Typography.Text>
+          {/* Discount and Service Charge Selection - Stack on mobile */}
+          <Row gutter={[8, 8]}>
+            <Col xs={24} sm={24} md={12}>
+              <Typography.Text strong style={{ fontSize: isMobile ? 13 : 14 }}>
+                Discount (Optional):
+              </Typography.Text>
               <Select
                 style={{ width: "100%", marginTop: 8 }}
+                size={isMobile ? "middle" : "large"}
                 placeholder="Select discount"
                 allowClear
                 value={selectedDiscountId}
@@ -880,12 +972,13 @@ const PointOfSale = () => {
                 }))}
               />
             </Col>
-            <Col span={12}>
-              <Typography.Text strong>
+            <Col xs={24} sm={24} md={12}>
+              <Typography.Text strong style={{ fontSize: isMobile ? 13 : 14 }}>
                 Service Charge (Optional):
               </Typography.Text>
               <Select
                 style={{ width: "100%", marginTop: 8 }}
+                size={isMobile ? "middle" : "large"}
                 placeholder="Select service charge"
                 allowClear
                 value={selectedServiceChargeId}

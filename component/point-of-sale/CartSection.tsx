@@ -11,6 +11,7 @@ import { CartProduct } from "@/utils/helper";
 import { MessageInstance } from "antd/es/message/interface";
 import { Dispatch, SetStateAction } from "react";
 import { OrderType } from "@/generated/graphql";
+import { useMediaQuery } from "react-responsive";
 
 interface CartSectionProps {
   cart: CartProduct[];
@@ -47,6 +48,8 @@ const CartSection = ({
   onOpenPayment,
   onPrintBill,
 }: CartSectionProps) => {
+  const isMobile = useMediaQuery({ maxWidth: 767 });
+  
   const posTableProps = {
     cart,
     setCart,
@@ -61,14 +64,22 @@ const CartSection = ({
         display: "flex",
         flexDirection: "column",
       }}
+      styles={{
+        body: {
+          padding: isMobile ? "12px" : "24px",
+          flex: 1,
+          display: "flex",
+          flexDirection: "column",
+        }
+      }}
     >
-      <Flex justify="space-between" align="center" style={{ marginBottom: 16 }}>
+      <Flex justify="space-between" align="center" style={{ marginBottom: 16 }} wrap="wrap" gap={8}>
         <div>
-          <Typography.Title level={4} style={{ margin: 0 }}>
+          <Typography.Title level={4} style={{ margin: 0, fontSize: isMobile ? 16 : 20 }}>
             <ShoppingCartOutlined /> Cart ({cart.length})
           </Typography.Title>
           {currentParkedOrderNo && (
-            <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+            <Typography.Text type="secondary" style={{ fontSize: 11 }}>
               {currentParkedOrderNo}
             </Typography.Text>
           )}
@@ -87,14 +98,16 @@ const CartSection = ({
 
       <Space
         direction="vertical"
-        style={{ width: "100%", marginBottom: 16 }}
-        size={12}
+        style={{ width: "100%", marginBottom: 12 }}
+        size={8}
       >
         <div>
-          <Typography.Text strong>Order Type:</Typography.Text>
+          <Typography.Text strong style={{ fontSize: isMobile ? 12 : 14 }}>
+            Order Type:
+          </Typography.Text>
           <Segmented
             block
-            size="large"
+            size={isMobile ? "middle" : "large"}
             value={orderType}
             onChange={onOrderTypeChange}
             options={[
@@ -133,10 +146,12 @@ const CartSection = ({
 
         {orderType === OrderType.DineIn && (
           <div>
-            <Typography.Text strong>Table:</Typography.Text>
+            <Typography.Text strong style={{ fontSize: isMobile ? 12 : 14 }}>
+              Table:
+            </Typography.Text>
             <Button
               block
-              size="large"
+              size={isMobile ? "middle" : "large"}
               onClick={onSelectTable}
               style={{ marginTop: 8 }}
               type={tableNumber ? "default" : "dashed"}
@@ -148,30 +163,29 @@ const CartSection = ({
         )}
       </Space>
 
-      <div style={{ flex: 1, marginBottom: 24 }}>
+      <div style={{ flex: 1, marginBottom: 12, overflowY: "auto", minHeight: "200px" }}>
         <PosListTable {...posTableProps} />
       </div>
 
       <div
         style={{
-          position: "absolute",
-          bottom: 16,
-          left: 16,
-          right: 16,
+          marginTop: "auto",
+          paddingTop: 12,
+          borderTop: "1px solid #f0f0f0"
         }}
       >
         <Flex justify="space-between" style={{ marginBottom: 12 }}>
-          <Typography.Title level={4} style={{ margin: 0 }}>
+          <Typography.Title level={4} style={{ margin: 0, fontSize: isMobile ? 16 : 20 }}>
             Total
           </Typography.Title>
-          <Typography.Title level={4} style={{ margin: 0 }} type="success">
+          <Typography.Title level={4} style={{ margin: 0, fontSize: isMobile ? 18 : 20 }} type="success">
             ₱{totalAmount.toFixed(2)}
           </Typography.Title>
         </Flex>
 
         <Space direction="vertical" style={{ width: "100%" }} size={8}>
           <Button
-            size="large"
+            size={isMobile ? "middle" : "large"}
             block
             onClick={onPark}
             loading={parkLoading}
@@ -180,7 +194,7 @@ const CartSection = ({
             {currentParkedId ? "Update Park" : "Park Order"}
           </Button>
           <Button
-            size="large"
+            size={isMobile ? "middle" : "large"}
             block
             icon={<PrinterOutlined />}
             onClick={onPrintBill}
@@ -190,7 +204,7 @@ const CartSection = ({
           </Button>
           <Button
             type="primary"
-            size="large"
+            size={isMobile ? "middle" : "large"}
             block
             onClick={onOpenPayment}
             disabled={cart.length === 0}

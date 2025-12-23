@@ -16,6 +16,7 @@ import {
 } from "antd";
 import { MessageInstance } from "antd/es/message/interface";
 import { useState } from "react";
+import { useMediaQuery } from "react-responsive";
 
 interface IProps {
   data: Product[];
@@ -42,6 +43,9 @@ const ItemPosCard = (props: IProps) => {
     setSearch,
   } = props;
   const [currentPage, setCurrentPage] = useState(1);
+
+  // Responsive breakpoints
+  const isMobile = useMediaQuery({ maxWidth: 767 });
 
   // Check if product has missing or inactive ingredients
   const checkMissingIngredients = (product: Product) => {
@@ -115,17 +119,28 @@ const ItemPosCard = (props: IProps) => {
   return (
     <div style={{ height: "100%", display: "flex", flexDirection: "column" }}>
       <div style={{ flex: 1 }}>
-        <Row gutter={[16, 16]}>
-          <Input.Search
-            allowClear
-            defaultValue={search}
-            onSearch={(value) => setSearch(value)}
-            style={{ paddingRight: 8, paddingLeft: 8 }}
-          />
+        <Row gutter={[8, 8]}>
+          <Col span={24}>
+            <Input.Search
+              allowClear
+              defaultValue={search}
+              onSearch={(value) => setSearch(value)}
+              placeholder="Search products..."
+              size={isMobile ? "middle" : "large"}
+              style={{ marginBottom: 8 }}
+            />
+          </Col>
           {paginatedData.map((item) => {
             const { hasMissing } = checkMissingIngredients(item);
             return (
-            <Col lg={6} md={8} sm={24} xs={24} key={item?._id}>
+            <Col 
+              xs={12} 
+              sm={12} 
+              md={8} 
+              lg={6} 
+              xl={6}
+              key={item?._id}
+            >
               <Badge.Ribbon 
                 text="Missing Ingredients" 
                 color="red"
@@ -138,6 +153,15 @@ const ItemPosCard = (props: IProps) => {
                     height: "100%",
                     cursor: "pointer",
                     opacity: hasMissing ? 0.7 : 1,
+                    overflow: "hidden", // Prevent content overflow
+                  }}
+                  styles={{ 
+                    body: { 
+                      padding: isMobile ? "8px" : "16px",
+                      display: "flex",
+                      flexDirection: "column",
+                      height: "100%",
+                    }
                   }}
                   onClick={() => handleAddToCart(item)}
                 >
@@ -145,15 +169,21 @@ const ItemPosCard = (props: IProps) => {
                   style={{
                     display: "flex",
                     flexDirection: "column",
-                    gap: 12,
-                    minHeight: 120,
+                    gap: isMobile ? 6 : 8,
+                    minHeight: isMobile ? 90 : 120,
+                    flex: 1,
                   }}
                 >
-                  <div style={{ flex: 1 }}>
+                  <div style={{ flex: 1, minHeight: 0 }}>
                     <Typography.Text 
                       strong 
                       ellipsis={{ tooltip: item.name }}
-                      style={{ fontSize: 16, lineHeight: 1.4, display: 'block' }}
+                      style={{ 
+                        fontSize: isMobile ? 12 : 14, 
+                        lineHeight: 1.3, 
+                        display: 'block',
+                        wordBreak: "break-word",
+                      }}
                     >
                       {item.name}
                     </Typography.Text>
@@ -164,16 +194,19 @@ const ItemPosCard = (props: IProps) => {
                       display: "flex", 
                       justifyContent: "space-between",
                       alignItems: "center",
-                      marginTop: "auto"
+                      marginTop: "auto",
+                      gap: isMobile ? 4 : 8,
+                      flexShrink: 0,
                     }}
                   >
                     <Tag 
                       color="blue" 
                       style={{ 
-                        fontSize: 14, 
-                        padding: "7px 14px",
+                        fontSize: isMobile ? 11 : 13, 
+                        padding: isMobile ? "2px 6px" : "4px 10px",
                         fontWeight: 600,
-                        margin: 0
+                        margin: 0,
+                        whiteSpace: "nowrap",
                       }}
                     >
                       ₱{item.price.toFixed(2)}
@@ -182,8 +215,8 @@ const ItemPosCard = (props: IProps) => {
                     <Button
                       type="primary"
                       shape="circle"
-                      size="large"
-                      icon={<PlusOutlined />}
+                      size={isMobile ? "small" : "middle"}
+                      icon={<PlusOutlined style={{ fontSize: isMobile ? 12 : 14 }} />}
                       onClick={(e) => {
                         e.stopPropagation();
                         handleAddToCart(item);
@@ -199,7 +232,7 @@ const ItemPosCard = (props: IProps) => {
         </Row>
       </div>
 
-      <div style={{ marginTop: 16, textAlign: "center" }}>
+      <div style={{ marginTop: 12, textAlign: "center" }}>
         <Pagination
           current={currentPage}
           pageSize={PAGE_SIZE}

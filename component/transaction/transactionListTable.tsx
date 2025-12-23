@@ -1,8 +1,9 @@
 "use client";
 import { Sale } from "@/generated/graphql";
 import { useModal } from "@/hooks/useModal";
-import { DeleteOutlined, SwapOutlined } from "@ant-design/icons";
-import { Button, Input, Space, Table, Tag } from "antd";
+import { DeleteOutlined, SwapOutlined, MoreOutlined, EyeOutlined, UndoOutlined, DollarOutlined } from "@ant-design/icons";
+import { Button, Input, Space, Table, Tag, Dropdown } from "antd";
+import type { MenuProps } from "antd";
 import { MessageInstance } from "antd/es/message/interface";
 import { TableProps } from "antd/lib";
 import { StyledDiv } from "../style";
@@ -101,46 +102,71 @@ const TransactionListTable = (props: IProps) => {
 			title: "Action",
 			dataIndex: "action",
 			key: "action",
-			width: 200,
+			width: 100,
 			align: "center",
 			fixed: "right",
 			render: (_, record: Sale) => {
 				const isCompleted = record.status === "COMPLETED";
 				const isVoided = record.status === "VOID";
 				
+				// Build menu items based on permissions and status
+				const menuItems: MenuProps['items'] = [];
+
+				// View action (always available if permission granted)
+				if (userPermissions?.transaction?.includes('view')) {
+					menuItems.push({
+						key: 'view',
+						icon: <EyeOutlined />,
+						label: 'View Details',
+						onClick: () => openModal(record),
+					});
+				}
+
+				// Change Item (only for COMPLETED sales)
+				if (isCompleted && userPermissions?.transaction?.includes('changeItem')) {
+					menuItems.push({
+						key: 'change',
+						icon: <SwapOutlined />,
+						label: 'Change Item',
+						onClick: () => handleOpenChangeItem(record),
+					});
+				}
+
+				// Refund (only for COMPLETED sales)
+				if (isCompleted && !isVoided && userPermissions?.transaction?.includes('refund')) {
+					menuItems.push({
+						key: 'refund',
+						icon: <DollarOutlined />,
+						label: 'Refund',
+						danger: true,
+						onClick: () => openModalVoid(record),
+					});
+				}
+
+				// Void (for non-completed or non-voided sales)
+				if (!isVoided && userPermissions?.transaction?.includes('void')) {
+					menuItems.push({
+						key: 'void',
+						icon: <UndoOutlined />,
+						label: 'Void',
+						danger: true,
+						onClick: () => openModalVoid(record),
+					});
+				}
+
+				// If no actions available, don't show dropdown
+				if (menuItems.length === 0) {
+					return <span style={{ color: '#999' }}>No actions</span>;
+				}
+
 				return (
-					<Space
-						style={{ justifyContent: "center", alignItems: "center", flex: 1 }}
+					<Dropdown
+						menu={{ items: menuItems }}
+						trigger={['click']}
+						placement="bottomRight"
 					>
-						{userPermissions?.transaction?.includes('view') && (
-							<Button type="link" size="small" onClick={() => openModal(record)}>
-								View
-							</Button>
-						)}
-
-						{isCompleted && userPermissions?.transaction?.includes('changeItem') && (
-							<Button 
-								type="link" 
-								size="small" 
-								icon={<SwapOutlined />}
-								onClick={() => handleOpenChangeItem(record)}
-							>
-								Change
-							</Button>
-						)}
-
-						{!isVoided && (userPermissions?.transaction?.includes('void') || userPermissions?.transaction?.includes('refund')) && (
-							<Button
-								type="link"
-								danger
-								size="small"
-								icon={<DeleteOutlined />}
-								onClick={() => openModalVoid(record)}
-							>
-								{isCompleted ? "Refund" : "Void"}
-							</Button>
-						)}
-					</Space>
+						<Button type="text" icon={<MoreOutlined />} />
+					</Dropdown>
 				);
 			},
 		},

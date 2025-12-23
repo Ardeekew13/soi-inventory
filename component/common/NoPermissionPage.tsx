@@ -2,6 +2,10 @@
 import { Button, Card, Typography, Space } from "antd";
 import { LockOutlined, HomeOutlined } from "@ant-design/icons";
 import { useRouter } from "next/navigation";
+import { useQuery } from "@apollo/client";
+import { ME_QUERY } from "@/graphql/auth/me";
+import { Query } from "@/generated/graphql";
+import { hasPermission } from "@/utils/permissions";
 
 interface NoPermissionPageProps {
   moduleName?: string;
@@ -9,6 +13,33 @@ interface NoPermissionPageProps {
 
 const NoPermissionPage = ({ moduleName }: NoPermissionPageProps) => {
   const router = useRouter();
+  const { data: meData } = useQuery<Query>(ME_QUERY, {
+    fetchPolicy: "network-only",
+  });
+
+  const handleGoHome = () => {
+    const userPermissions = meData?.me?.permissions || {};
+    const userRole = meData?.me?.role;
+
+    // Redirect to the first page user has access to
+    if (userRole === "SUPER_ADMIN" || hasPermission(userPermissions, "dashboard", "view")) {
+      router.push("/dashboard");
+    } else if (hasPermission(userPermissions, "pointOfSale", "view")) {
+      router.push("/point-of-sale");
+    } else if (hasPermission(userPermissions, "transaction", "view")) {
+      router.push("/transaction");
+    } else if (hasPermission(userPermissions, "inventory", "view")) {
+      router.push("/inventory");
+    } else if (hasPermission(userPermissions, "product", "view")) {
+      router.push("/product");
+    } else if (hasPermission(userPermissions, "cashDrawer", "view")) {
+      router.push("/cash-drawer");
+    } else if (hasPermission(userPermissions, "settings", "view")) {
+      router.push("/settings");
+    } else {
+      router.push("/");
+    }
+  };
 
   return (
     <div
@@ -53,10 +84,10 @@ const NoPermissionPage = ({ moduleName }: NoPermissionPageProps) => {
             type="primary"
             size="large"
             icon={<HomeOutlined />}
-            onClick={() => router.push("/dashboard")}
+            onClick={handleGoHome}
             style={{ minWidth: 150 }}
           >
-            Go to Dashboard
+            Go Home
           </Button>
         </Space>
       </Card>

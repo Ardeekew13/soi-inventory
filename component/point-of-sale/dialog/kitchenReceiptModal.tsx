@@ -41,22 +41,22 @@ const KitchenReceiptModal = ({
   onPrintReceipt,
 }: KitchenReceiptModalProps) => {
   // Calculate unprintedQuantity for each item
-  const itemsWithUnprinted = items.map(item => ({
+  const itemsWithUnprinted = items?.map(item => ({
     ...item,
-    unprintedQuantity: item.quantity - item.quantityPrinted,
-  }));
+    unprintedQuantity: (item?.quantity || 0) - (item?.quantityPrinted || 0),
+  })) || [];
 
   const unprintedItems = itemsWithUnprinted.filter((item) => item.unprintedQuantity > 0);
-  const printedItems = itemsWithUnprinted.filter((item) => item.quantityPrinted > 0);
+  const printedItems = itemsWithUnprinted.filter((item) => (item.quantityPrinted || 0) > 0);
 
   // Calculate total amount for all items
-  const totalAmount = items.reduce(
-    (sum, item) => sum + item.product.price * item.quantity,
+  const totalAmount = items?.reduce(
+    (sum, item) => sum + (item?.product?.price || 0) * (item?.quantity || 0),
     0
-  );
+  ) || 0;
 
   const handleSendUnprinted = () => {
-    const unprintedIds = unprintedItems.map((item) => item._id);
+    const unprintedIds = unprintedItems?.map((item) => item?._id).filter(Boolean) || [];
     if (unprintedIds.length > 0) {
       onSendToKitchen(unprintedIds);
     }
@@ -145,15 +145,15 @@ const KitchenReceiptModal = ({
           </div>
           
           ${
-            unprintedItems.length > 0
+            unprintedItems?.length > 0
               ? `
             <div class="section-title">NEW ITEMS:</div>
             ${unprintedItems
-              .map(
+              ?.map(
                 (item) => `
               <div class="item">
-                <span class="item-name">${item.product.name}</span>
-                <span class="item-qty">x${item.unprintedQuantity}</span>
+                <span class="item-name">${item?.product?.name || 'Unknown'}</span>
+                <span class="item-qty">x${item?.unprintedQuantity || 0}</span>
               </div>
             `
               )
@@ -165,12 +165,12 @@ const KitchenReceiptModal = ({
           <div class="divider"></div>
           <div class="footer">
             <div style="font-size: 16px; font-weight: bold; margin-bottom: 8px;">
-              TOTAL ORDER AMOUNT: ₱${totalAmount.toFixed(2)}
+              TOTAL ORDER AMOUNT: ₱${totalAmount?.toFixed(2) || '0.00'}
             </div>
-            <div><strong>Total Items: ${items.reduce(
-              (sum, item) => sum + item.quantity,
+            <div><strong>Total Items: ${items?.reduce(
+              (sum, item) => sum + (item?.quantity || 0),
               0
-            )}</strong></div>
+            ) || 0}</strong></div>
           </div>
         </body>
       </html>
@@ -187,7 +187,7 @@ const KitchenReceiptModal = ({
       printWindow.print();
       
       // Mark unprinted items as printed
-      if (unprintedItems.length > 0) {
+      if (unprintedItems?.length > 0) {
         handleSendUnprinted();
       }
       
@@ -219,10 +219,10 @@ const KitchenReceiptModal = ({
             type="primary"
             icon={<PrinterOutlined />}
             onClick={handlePrintKitchen}
-            disabled={unprintedItems.length === 0}
+            disabled={(unprintedItems?.length || 0) === 0}
           >
-            {unprintedItems.length > 0 
-              ? `Print to Kitchen (${unprintedItems.length} new)` 
+            {(unprintedItems?.length || 0) > 0 
+              ? `Print to Kitchen (${unprintedItems?.length} new)` 
               : "All Items Sent"}
           </Button>
         </Space>
@@ -252,24 +252,24 @@ const KitchenReceiptModal = ({
         </div>
 
         {/* Unprinted Items */}
-        {unprintedItems.length > 0 && (
+        {(unprintedItems?.length || 0) > 0 && (
           <div>
             <Typography.Title level={5} style={{ color: "#ff4d4f" }}>
-              NEW ITEMS ({unprintedItems.length})
+              NEW ITEMS ({unprintedItems?.length || 0})
             </Typography.Title>
             <List
               size="small"
-              dataSource={unprintedItems}
+              dataSource={unprintedItems || []}
               renderItem={(item) => (
                 <List.Item>
                   <Space
                     style={{ width: "100%", justifyContent: "space-between" }}
                   >
                     <Typography.Text strong>
-                      {item.product.name}
+                      {item?.product?.name || 'Unknown'}
                     </Typography.Text>
                     <Typography.Text strong style={{ fontSize: 16 }}>
-                      x{item.unprintedQuantity}
+                      x{item?.unprintedQuantity || 0}
                     </Typography.Text>
                   </Space>
                 </List.Item>
@@ -292,12 +292,12 @@ const KitchenReceiptModal = ({
               TOTAL ORDER AMOUNT:
             </Typography.Text>
             <Typography.Title level={4} style={{ margin: 0, color: "#52c41a" }}>
-              ₱{totalAmount.toFixed(2)}
+              ₱{totalAmount?.toFixed(2) || '0.00'}
             </Typography.Title>
           </Space>
         </div>
 
-        {unprintedItems.length === 0 && (
+        {(unprintedItems?.length || 0) === 0 && (
           <div style={{ textAlign: "center", padding: "20px 0" }}>
             <CheckOutlined style={{ fontSize: 48, color: "#52c41a" }} />
             <Typography.Title level={4} style={{ marginTop: 16 }}>

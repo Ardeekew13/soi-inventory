@@ -5,7 +5,7 @@
  * const { isOnline, pendingCount, syncNow } = useOfflineSync();
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useApolloClient } from '@apollo/client';
 import { getOfflineSync } from '@/lib/offlineSync';
 import { App } from 'antd';
@@ -19,17 +19,35 @@ export function useOfflineSync() {
   const [pendingCount, setPendingCount] = useState(offlineSync.getPendingCount());
   const [isSyncing, setIsSyncing] = useState(false);
   const [lastSyncTime, setLastSyncTime] = useState<number | null>(offlineSync.getLastSyncTime());
+  
+  // Track if messages have been shown to prevent duplicates
+  const messageShownRef = useRef({
+    online: false,
+    offline: false,
+    lastMessageTime: 0,
+  });
 
   useEffect(() => {
+    const MESSAGE_DEBOUNCE_MS = 2000; // Prevent duplicate messages within 2 seconds
+    
     // Subscribe to network changes
     const unsubscribe = offlineSync.onNetworkChange((online) => {
       setIsOnline(online);
       
-      if (online) {
+      const now = Date.now();
+      const timeSinceLastMessage = now - messageShownRef.current.lastMessageTime;
+      
+      if (online && !messageShownRef.current.online && timeSinceLastMessage > MESSAGE_DEBOUNCE_MS) {
         message.success('🟢 Back online! Syncing pending transactions...');
+        messageShownRef.current.online = true;
+        messageShownRef.current.offline = false;
+        messageShownRef.current.lastMessageTime = now;
         syncNow();
-      } else {
+      } else if (!online && !messageShownRef.current.offline && timeSinceLastMessage > MESSAGE_DEBOUNCE_MS) {
         message.warning('🔴 No internet connection. Working offline.');
+        messageShownRef.current.offline = true;
+        messageShownRef.current.online = false;
+        messageShownRef.current.lastMessageTime = now;
       }
     });
 
@@ -47,9 +65,19 @@ export function useOfflineSync() {
       setLastSyncTime(offlineSync.getLastSyncTime());
     }, 2000);
 
-    // Initial sync if online
-    if (isOnline && offlineSync.getPendingCount() > 0) {
-      syncNow();
+    // Initial sync if online (only once per app lifecycle)
+    if (isOnline && offlineSync.getPendingCount() > 0 && !isSyncing) {
+      // Delay initial sync to prevent multiple components from triggering it
+      const initialSyncTimeout = setTimeout(() => {
+        syncNow();
+      }, 500);
+      
+      return () => {
+        unsubscribe();
+        window.removeEventListener('offline-sync-update', handleSyncUpdate);
+        clearInterval(interval);
+        clearTimeout(initialSyncTimeout);
+      };
     }
 
     return () => {

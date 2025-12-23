@@ -11,6 +11,9 @@ export const GET_SALE_REPORTS = gql`
 			totalCostPercentage
 			grossProfitPercentage
 			availableYears
+			numberOfTransactions
+			totalDiscounts
+			totalNetSales
 			topProductSold {
 				name
 				quantity
@@ -21,6 +24,28 @@ export const GET_SALE_REPORTS = gql`
 				totalCostOfGoods
 				grossProfit
 				totalItemsSold
+			}
+			salesByPaymentMethod {
+				paymentMethod
+				totalAmount
+				count
+			}
+			totalRefunds
+			numberOfRefunds
+			salesByItem {
+				itemName
+				totalAmount
+				quantity
+			}
+			salesByCashier {
+				cashierName
+				totalAmount
+				count
+			}
+			salesByHour {
+				hour
+				totalAmount
+				count
 			}
 		}
 	}

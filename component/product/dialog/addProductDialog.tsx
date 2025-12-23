@@ -101,6 +101,9 @@ const AddProductModal = (props: ProductModalProps) => {
   }, [record]);
 
   const [addProduct, { loading }] = useMutation<Mutation>(ADD_PRODUCT, {
+    // Refetch GET_PRODUCTS to update POS page and other components
+    refetchQueries: ["GET_PRODUCTS"],
+    awaitRefetchQueries: true,
     onCompleted: (data) => {
       const response = data?.addProduct as any;
       if (response?.success) {
@@ -191,7 +194,7 @@ const AddProductModal = (props: ProductModalProps) => {
       const updatedIngredients = [...ingredients];
       updatedIngredients[existingIndex] = {
         ...updatedIngredients[existingIndex],
-        quantityUsed: updatedIngredients[existingIndex].quantityUsed + 1,
+        quantityUsed: parseFloat((updatedIngredients[existingIndex].quantityUsed + 0.01).toFixed(2)),
       };
       setIngredients(updatedIngredients);
       messageApi.success(
@@ -205,7 +208,7 @@ const AddProductModal = (props: ProductModalProps) => {
           unit: selectedItem.unit,
           pricePerUnit: selectedItem.pricePerUnit,
         },
-        quantityUsed: 1,
+        quantityUsed: 0.01,
       };
       setIngredients([...ingredients, newIngredient]);
     }
@@ -218,7 +221,7 @@ const AddProductModal = (props: ProductModalProps) => {
       if (ingredient.item._id === id) {
         return {
           ...ingredient,
-          quantityUsed: Math.max(0, ingredient.quantityUsed - 1),
+          quantityUsed: Math.max(0.01, parseFloat((ingredient.quantityUsed - 0.01).toFixed(2))),
         };
       }
       return ingredient;
@@ -231,7 +234,7 @@ const AddProductModal = (props: ProductModalProps) => {
       if (ingredient.item._id === id) {
         return {
           ...ingredient,
-          quantityUsed: ingredient.quantityUsed + 1,
+          quantityUsed: parseFloat((ingredient.quantityUsed + 0.01).toFixed(2)),
         };
       }
       return ingredient;
@@ -269,7 +272,7 @@ const AddProductModal = (props: ProductModalProps) => {
       );
 
       if (invalidQuantities.length > 0) {
-        messageApi.error("Quantity of each ingredient must be at least 1");
+        messageApi.error("Quantity of each ingredient must be greater than 0");
         return;
       }
 
@@ -332,7 +335,7 @@ const AddProductModal = (props: ProductModalProps) => {
           <Button
             size="small"
             onClick={() => handleDecrement(record.item._id)}
-            disabled={record.quantityUsed <= 1}
+            disabled={record.quantityUsed <= 0.01}
           >
             -
           </Button>
@@ -341,8 +344,10 @@ const AddProductModal = (props: ProductModalProps) => {
             onChange={(value) =>
               value !== null && handleQuantityChange(record.item._id, value)
             }
-            min={1}
-            style={{ width: 60 }}
+            min={0.01}
+            step={0.01}
+            precision={2}
+            style={{ width: 80 }}
           />
           <Button size="small" onClick={() => handleIncrement(record.item._id)}>
             +

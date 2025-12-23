@@ -74,7 +74,7 @@ export default function NavbarLayout({
 	children: React.ReactNode;
 }) {
 	const { data: meData, loading: meLoading } = useQuery(ME_QUERY, {
-		fetchPolicy: 'cache-and-network',
+		fetchPolicy: 'network-only', // Always fetch fresh data to prevent stale cache issues
 	});
 	const user = meData?.me;
 	const userPermissions = user?.permissions || {};
@@ -102,16 +102,25 @@ export default function NavbarLayout({
 
 	const [selectedKeys, setSelectedKeys] = useState<string[]>(["/"]);
 	const router = useRouter();
-	const isMobile = useMediaQuery({ query: "(max-width: 768px)" });
+	const isMobile = useMediaQuery({ maxWidth: 767 });
+	const isTablet = useMediaQuery({ maxWidth: 1023 });
 	const [collapsed, setCollapsed] = useState(false);
 	const [hydrated, setHydrated] = useState(false);
 	const [logout, { loading }] = useMutation<Mutation>(LOGOUT_MUTATION);
 
 	const handleLogout = async () => {
-		await logout();
-		// Clear Apollo cache on logout to prevent stale user data
-		await apolloClient.clearStore();
-		router.push("/");
+		try {
+			await logout();
+			// Reset Apollo cache completely and stop all active queries
+			await apolloClient.resetStore();
+			// Force redirect to login page
+			router.push("/");
+		} catch (error) {
+			console.error("Logout error:", error);
+			// Even if logout fails, clear cache and redirect
+			await apolloClient.clearStore();
+			router.push("/");
+		}
 	};
 
 	// User dropdown menu items
@@ -172,21 +181,21 @@ export default function NavbarLayout({
 					{/* Logo and Close */}
 					<div
 						style={{
-							padding: 16,
+							padding: isMobile ? 12 : 16,
 							display: "flex",
 							justifyContent: "space-between",
 							alignItems: "center",
 						}}
 					>
 						<div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-							<Image src={logo} alt="logo" height={40} />
-							<Typography.Title level={4} style={{ margin: 0 }}>
+							<Image src={logo} alt="logo" height={isMobile ? 30 : 40} width={isMobile ? 30 : 40} />
+							<Typography.Title level={isMobile ? 5 : 4} style={{ margin: 0, fontSize: isMobile ? 14 : 20 }}>
 								Soi Suites
 							</Typography.Title>
 						</div>
 						<CloseOutlined
 							onClick={() => setCollapsed(true)}
-							style={{ fontSize: 20, cursor: "pointer", color: "#999" }}
+							style={{ fontSize: isMobile ? 16 : 20, cursor: "pointer", color: "#999" }}
 						/>
 					</div>
 
@@ -238,32 +247,43 @@ export default function NavbarLayout({
 						display: "flex",
 						alignItems: "center",
 						backgroundColor: "#ffffff",
-						padding: "0 24px",
+						padding: isTablet ? "0 12px" : "0 24px",
+						height: 64,
 					}}
 				>
 					<div
 						style={{
 							fontWeight: "bold",
-							marginRight: 40,
+							marginRight: isTablet ? 12 : 40,
+							display: "flex",
+							alignItems: "center",
+							gap: 8,
+							fontSize: 16,
+							flexShrink: 0,
+							whiteSpace: "nowrap",
 						}}
 					>
-						<Image src={logo} alt="logo" height={30} />
-						Soi Suites
+						<Image src={logo} alt="logo" height={30} width={30} />
+						<span style={{ display: isTablet ? "none" : "inline" }}>Soi Suites</span>
 					</div>
 					<Menu
 						selectedKeys={selectedKeys}
 						mode="horizontal"
 						theme="light"
-						style={{ flex: 1 }}
+						style={{ 
+							flex: 1, 
+							fontSize: isTablet ? 13 : 14,
+							minWidth: 0, // Allow menu to shrink
+						}}
 						items={items}
 						onClick={onMenuClick}
 					/>
 
 					{/* User Info & Logout */}
 					<Dropdown menu={{ items: userMenuItems }} placement="bottomRight">
-						<Space style={{ cursor: "pointer", marginLeft: 16 }}>
-							<Avatar icon={<UserOutlined />} />
-							<Typography.Text strong>
+						<Space style={{ cursor: "pointer", marginLeft: isTablet ? 8 : 16, flexShrink: 0 }} size={isTablet ? 4 : 8}>
+							<Avatar size={isTablet ? 32 : 40} icon={<UserOutlined />} />
+							<Typography.Text strong style={{ fontSize: 14, display: isTablet ? "none" : "inline" }}>
 								{user?.firstName} {user?.lastName}
 							</Typography.Text>
 						</Space>
@@ -281,15 +301,21 @@ export default function NavbarLayout({
 					<Header
 						style={{
 							backgroundColor: "#ffffff",
-							padding: "0 24px",
-							height: 64,
+							padding: "0 16px",
+							height: 56,
 							display: "flex",
 							alignItems: "center",
+							justifyContent: "space-between",
 							boxShadow: "0 1px 4px rgba(0, 21, 41, 0.08)",
 							zIndex: 1,
 						}}
 					>
-						<MenuOpenOutlined onClick={() => setCollapsed(!collapsed)} />
+						<div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+							<MenuOpenOutlined onClick={() => setCollapsed(!collapsed)} style={{ fontSize: 20 }} />
+							<Image src={logo} alt="logo" height={28} width={28} />
+							<Typography.Text strong style={{ fontSize: 14 }}>Soi Suites</Typography.Text>
+						</div>
+						<Avatar size={32} icon={<UserOutlined />} onClick={handleLogout} style={{ cursor: "pointer" }} />
 					</Header>
 				)}
 				{children}

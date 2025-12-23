@@ -45,7 +45,9 @@ const CashDrawerModal = ({ open, onClose }: CashDrawerModalProps) => {
   const [messageApi, contextHolder] = message.useMessage();
   
   // Get user permissions
-  const { data: meData } = useQuery<Query>(ME_QUERY);
+  const { data: meData } = useQuery<Query>(ME_QUERY, {
+    fetchPolicy: 'network-only', // Always fetch fresh data to prevent stale cache issues
+  });
   const userPermissions = meData?.me?.permissions;
   const userRole = meData?.me?.role;
   

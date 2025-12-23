@@ -8,16 +8,16 @@
 /**
  * Compress an image file to reduce size before uploading
  * @param file - The image file to compress
- * @param maxWidth - Maximum width in pixels (default: 800)
- * @param maxHeight - Maximum height in pixels (default: 600)
- * @param quality - JPEG quality 0-1 (default: 0.7)
+ * @param maxWidth - Maximum width in pixels (default: 1920)
+ * @param maxHeight - Maximum height in pixels (default: 1080)
+ * @param quality - JPEG quality 0-1 (default: 0.85)
  * @returns Promise<Blob> - Compressed image blob
  */
 export const compressImage = async (
   file: File | Blob,
-  maxWidth: number = 800,
-  maxHeight: number = 600,
-  quality: number = 0.7
+  maxWidth: number = 1920,
+  maxHeight: number = 1080,
+  quality: number = 0.85
 ): Promise<Blob> => {
   return new Promise((resolve, reject) => {
     const img = new Image();

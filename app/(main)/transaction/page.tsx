@@ -46,6 +46,10 @@ const Transactions = () => {
         return allSales.filter((sale: Sale) => sale.status === "PARKED");
       case "voided":
         return allSales.filter((sale: Sale) => sale.status === "VOID");
+      case "refunds":
+        return allSales.filter((sale: Sale) => sale.status === "REFUNDED");
+      case "itemChanges":
+        return allSales.filter((sale: Sale) => sale.status === "ITEM_CHANGED");
       default:
         return allSales;
     }
@@ -159,6 +163,20 @@ const Transactions = () => {
               data?.sales?.filter((s: Sale) => s.status === "VOID").length ?? 0
             })`,
             key: "voided",
+            children: <TransactionListTable {...tableProps} />,
+          },
+          {
+            label: `Refunds (${
+              data?.sales?.filter((s: Sale) => s.status === "REFUNDED").length ?? 0
+            })`,
+            key: "refunds",
+            children: <TransactionListTable {...tableProps} />,
+          },
+          {
+            label: `Item Changes (${
+              data?.sales?.filter((s: Sale) => s.status === "ITEM_CHANGED").length ?? 0
+            })`,
+            key: "itemChanges",
             children: <TransactionListTable {...tableProps} />,
           },
         ]}

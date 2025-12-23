@@ -20,7 +20,7 @@ const saleSchema = new mongoose.Schema(
     status: {
       type: String,
       required: true,
-      enum: ["PARKED", "COMPLETED", "VOID"],
+      enum: ["PARKED", "COMPLETED", "VOID", "REFUNDED", "ITEM_CHANGED"],
       default: "PARKED",
     },
     voidReason: {

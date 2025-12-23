@@ -3,6 +3,7 @@ import { Button, Col, Form, Input, Modal, Row } from "antd";
 import { MessageInstance } from "antd/es/message/interface";
 import Image from "next/image";
 import voidPc from "@/app/assets/voidPc.svg";
+import { useEffect, useRef } from "react";
 
 const VERIFY_PASSWORD = gql`
   mutation VerifyPassword($password: String!) {
@@ -33,24 +34,49 @@ const PasswordConfirmation = ({
   confirmButtonText = "Verify and Confirm",
 }: PasswordConfirmationProps) => {
   const [passwordForm] = Form.useForm();
+  const verifyingRef = useRef(false);
+
+  // Reset verification flag when modal opens/closes
+  useEffect(() => {
+    if (open) {
+      verifyingRef.current = false;
+    }
+  }, [open]);
 
   const [verifyPassword, { loading: verifyingPassword }] = useMutation(
     VERIFY_PASSWORD,
     {
       onCompleted: async (data) => {
         if (data?.verifyPassword?.success) {
-          messageApi.success("Password verified");
+          // Don't show success message here - let the parent component handle it
           passwordForm.resetFields();
           onConfirm();
           onClose();
+          verifyingRef.current = false;
         } else {
+          // Clear only the password field on incorrect password
+          passwordForm.setFieldsValue({ password: "" });
           messageApi.error(
-            data?.verifyPassword?.message || "Incorrect password"
+            data?.verifyPassword?.message || "Incorrect password. Please try again."
           );
+          verifyingRef.current = false;
+          // Focus back on password field
+          setTimeout(() => {
+            const passwordInput = document.querySelector('input[type="password"]') as HTMLInputElement;
+            passwordInput?.focus();
+          }, 100);
         }
       },
       onError: () => {
-        messageApi.error("Password verification failed");
+        // Clear password field on error
+        passwordForm.setFieldsValue({ password: "" });
+        messageApi.error("Password verification failed. Please try again.");
+        verifyingRef.current = false;
+        // Focus back on password field
+        setTimeout(() => {
+          const passwordInput = document.querySelector('input[type="password"]') as HTMLInputElement;
+          passwordInput?.focus();
+        }, 100);
       },
     }
   );
@@ -61,7 +87,14 @@ const PasswordConfirmation = ({
   };
 
   const handleVerifyPassword = async () => {
+    // Prevent multiple simultaneous verifications
+    if (verifyingRef.current) {
+      console.log("Already verifying password, skipping duplicate call");
+      return;
+    }
+
     try {
+      verifyingRef.current = true;
       const values = await passwordForm.validateFields();
       await verifyPassword({
         variables: {
@@ -70,6 +103,7 @@ const PasswordConfirmation = ({
       });
     } catch (error) {
       console.error("Form validation failed:", error);
+      verifyingRef.current = false;
     }
   };
 
@@ -116,7 +150,6 @@ const PasswordConfirmation = ({
         form={passwordForm}
         name="passwordVerification"
         layout="vertical"
-        onFinish={handleVerifyPassword}
       >
         <Row gutter={4}>
           <Col span={24}>
@@ -125,7 +158,11 @@ const PasswordConfirmation = ({
               name="password"
               rules={[{ required: true, message: "Please enter your password" }]}
             >
-              <Input.Password size="large" placeholder="Enter password" />
+              <Input.Password 
+                size="large" 
+                placeholder="Enter password"
+                autoFocus
+              />
             </Form.Item>
           </Col>
         </Row>

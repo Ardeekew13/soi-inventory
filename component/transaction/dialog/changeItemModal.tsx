@@ -4,7 +4,7 @@ import { GET_PRODUCTS } from "@/graphql/inventory/products";
 import { useMutation, useQuery } from "@apollo/client";
 import { Button, Modal, Select, InputNumber, Input, Space, Typography, Alert, Card, Divider } from "antd";
 import { MessageInstance } from "antd/es/message/interface";
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import PasswordConfirmation from "@/component/common/PasswordConfirmation";
 import { pesoFormatter } from "@/utils/helper";
 
@@ -18,11 +18,19 @@ interface ChangeItemModalProps {
 
 const ChangeItemModal = (props: ChangeItemModalProps) => {
 	const { open, onClose, refetch, messageApi, record } = props;
-	const [selectedOldItemId, setSelectedOldItemId] = useState<string | null>(null);
-	const [selectedNewProductId, setSelectedNewProductId] = useState<string | null>(null);
+	const [selectedOldItemId, setSelectedOldItemId] = useState<string | undefined>(undefined);
+	const [selectedNewProductId, setSelectedNewProductId] = useState<string | undefined>(undefined);
 	const [newQuantity, setNewQuantity] = useState<number>(1);
 	const [reason, setReason] = useState<string>("");
 	const [showPasswordModal, setShowPasswordModal] = useState(false);
+	const messageShownRef = useRef(false);
+
+	// Reset message flag when modal opens
+	useEffect(() => {
+		if (open) {
+			messageShownRef.current = false;
+		}
+	}, [open]);
 
 	const { data: productsData } = useQuery<Query>(GET_PRODUCTS, {
 		variables: { search: "", limit: 1000 },
@@ -30,6 +38,9 @@ const ChangeItemModal = (props: ChangeItemModalProps) => {
 
 	const [changeItem, { loading }] = useMutation<Mutation>(CHANGE_ITEM, {
 		onCompleted: (data) => {
+			if (messageShownRef.current) return; // Prevent duplicate messages
+			messageShownRef.current = true;
+			
 			if (data?.changeItem?.success) {
 				messageApi.success(data?.changeItem?.message);
 				refetch();
@@ -39,6 +50,8 @@ const ChangeItemModal = (props: ChangeItemModalProps) => {
 			}
 		},
 		onError: (error) => {
+			if (messageShownRef.current) return; // Prevent duplicate messages
+			messageShownRef.current = true;
 			messageApi.error("Failed to change item");
 			console.error("Change item error:", error);
 		},
@@ -68,8 +81,8 @@ const ChangeItemModal = (props: ChangeItemModalProps) => {
 
 	const handleCloseModal = () => {
 		Modal.destroyAll();
-		setSelectedOldItemId(null);
-		setSelectedNewProductId(null);
+		setSelectedOldItemId(undefined);
+		setSelectedNewProductId(undefined);
 		setNewQuantity(1);
 		setReason("");
 		setShowPasswordModal(false);
@@ -156,12 +169,15 @@ const ChangeItemModal = (props: ChangeItemModalProps) => {
 								}
 							}}
 							disabled={!isCompleted}
+							allowClear
 						>
-							{saleItems.map((item: any) => (
-								<Select.Option key={item._id} value={item._id}>
-									{item.product?.name} - Qty: {item.quantity} - {pesoFormatter(item.priceAtSale * item.quantity)}
-								</Select.Option>
-							))}
+							{saleItems
+								.filter((item: any) => item.product && item._id)
+								.map((item: any) => (
+									<Select.Option key={item._id} value={item._id}>
+										{item.product?.name || 'Unknown Product'} - Qty: {item.quantity} - {pesoFormatter(item.priceAtSale * item.quantity)}
+									</Select.Option>
+								))}
 						</Select>
 					</div>
 
@@ -177,12 +193,24 @@ const ChangeItemModal = (props: ChangeItemModalProps) => {
 								(option?.children as unknown as string)?.toLowerCase().includes(input.toLowerCase())
 							}
 							disabled={!isCompleted || !selectedOldItemId}
+							allowClear
 						>
-							{products.map((product: any) => (
-								<Select.Option key={product._id} value={product._id}>
-									{product.name} - {pesoFormatter(product.price)}
-								</Select.Option>
-							))}
+							{products
+								.filter((product: any) => {
+									// Filter out products that don't have an ID
+									if (!product._id) return false;
+									
+									// Exclude products that are already in the sale items
+									const isAlreadyInSale = saleItems.some(
+										(item: any) => item.productId === product._id
+									);
+									return !isAlreadyInSale;
+								})
+								.map((product: any) => (
+									<Select.Option key={product._id} value={product._id}>
+										{product.name} - {pesoFormatter(product.price)}
+									</Select.Option>
+								))}
 						</Select>
 					</div>
 
@@ -195,6 +223,9 @@ const ChangeItemModal = (props: ChangeItemModalProps) => {
 							onChange={(value) => setNewQuantity(value || 1)}
 							disabled={!isCompleted || !selectedOldItemId}
 						/>
+						<Typography.Text type="secondary" style={{ fontSize: 12, display: 'block', marginTop: 4 }}>
+							You can select any quantity (not limited to original quantity)
+						</Typography.Text>
 					</div>
 
 					<div>

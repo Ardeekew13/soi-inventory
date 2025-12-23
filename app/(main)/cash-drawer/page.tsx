@@ -13,6 +13,7 @@ import { pesoFormatter } from "@/utils/helper";
 import {
   CloseCircleOutlined,
   DollarOutlined,
+  DownloadOutlined,
   HistoryOutlined,
   MinusCircleOutlined,
   PlusCircleOutlined,
@@ -38,6 +39,7 @@ import {
 } from "antd";
 import dayjs from "dayjs";
 import { useEffect, useState } from "react";
+import { exportCashDrawerToExcel, exportCashDrawerHistoryToExcel } from "@/utils/export-cash-drawer";
 
 const CashDrawerPage = () => {
   // Permission guard - will redirect if no access
@@ -176,6 +178,22 @@ const CashDrawerPage = () => {
     addCashOut({
       variables: { amount: cashOutAmount, description: cashOutDescription },
     });
+  };
+
+  const handleExportCurrentDrawer = () => {
+    if (currentDrawer) {
+      exportCashDrawerToExcel(currentDrawer);
+      messageApi.success("Cash drawer exported successfully");
+    }
+  };
+
+  const handleExportHistory = () => {
+    if (drawerHistory.length > 0) {
+      exportCashDrawerHistoryToExcel(drawerHistory);
+      messageApi.success("Cash drawer history exported successfully");
+    } else {
+      messageApi.warning("No history data to export");
+    }
   };
 
   const getTransactionColor = (type: string) => {
@@ -465,7 +483,7 @@ const CashDrawerPage = () => {
 
           {/* Action Buttons */}
           <Card title="Actions">
-            <Space size="middle">
+            <Space size="middle" wrap>
               <Button
                 type="primary"
                 icon={<PlusCircleOutlined />}
@@ -493,6 +511,14 @@ const CashDrawerPage = () => {
                 disabled={!userPermissions?.cashDrawer?.includes("openClose")}
               >
                 Close Drawer
+              </Button>
+              <Button
+                type="default"
+                icon={<DownloadOutlined />}
+                onClick={handleExportCurrentDrawer}
+                size="large"
+              >
+                Export to Excel
               </Button>
             </Space>
           </Card>
@@ -526,8 +552,8 @@ const CashDrawerPage = () => {
                       </div>
                     </Space>
                     <Typography.Text strong style={{ fontSize: 16 }}>
-                      {transaction.type === "CASH_OUT" ? "-" : "+"}
-                      {pesoFormatter(transaction.amount)}
+                      {transaction.type === "CASH_OUT" || transaction.type === "REFUND" || transaction.type === "VOID" ? "-" : "+"}
+                      {pesoFormatter(Math.abs(transaction.amount))}
                     </Typography.Text>
                   </Space>
                 </List.Item>
@@ -546,6 +572,16 @@ const CashDrawerPage = () => {
             <HistoryOutlined />
             <span>Cash Drawer History</span>
           </Space>
+        }
+        extra={
+          <Button
+            type="primary"
+            icon={<DownloadOutlined />}
+            onClick={handleExportHistory}
+            disabled={drawerHistory.length === 0}
+          >
+            Export History
+          </Button>
         }
       >
         <Table

@@ -229,9 +229,17 @@ export const employeeShiftResolvers = {
             const scheduledBreakStart = createScheduledTime(shiftSchedule.breakStartTime);
             const minutesDiff = getMinutesDifference(eventTimestamp, scheduledBreakStart);
             
-            // Allow ±30 minutes window for break start
+            // Allow lunch break anytime, but add note if significantly late/early
             if (Math.abs(minutesDiff) > 30) {
-              throw new Error(`Lunch break should start around ${shiftSchedule.breakStartTime}. You are ${Math.abs(Math.round(minutesDiff))} minutes ${minutesDiff > 0 ? 'late' : 'early'}.`);
+              const lateOrEarly = minutesDiff > 0 ? 'late' : 'early';
+              const timeNote = `${Math.abs(Math.round(minutesDiff))} minutes ${lateOrEarly}`;
+              
+              // Add automatic note about timing (append to user's notes if any)
+              if (!input.notes) {
+                input.notes = `Lunch break started ${timeNote} (scheduled: ${shiftSchedule.breakStartTime})`;
+              } else {
+                input.notes += ` | System note: ${timeNote}`;
+              }
             }
           }
 
@@ -240,9 +248,17 @@ export const employeeShiftResolvers = {
             const scheduledBreakEnd = createScheduledTime(shiftSchedule.breakEndTime);
             const minutesDiff = getMinutesDifference(eventTimestamp, scheduledBreakEnd);
             
-            // Allow ±30 minutes window for break end
+            // Allow lunch break end anytime, but add note if significantly late/early
             if (Math.abs(minutesDiff) > 30) {
-              throw new Error(`Lunch break should end around ${shiftSchedule.breakEndTime}. You are ${Math.abs(Math.round(minutesDiff))} minutes ${minutesDiff > 0 ? 'late' : 'early'}.`);
+              const lateOrEarly = minutesDiff > 0 ? 'late' : 'early';
+              const timeNote = `${Math.abs(Math.round(minutesDiff))} minutes ${lateOrEarly}`;
+              
+              // Add automatic note about timing
+              if (!input.notes) {
+                input.notes = `Lunch break ended ${timeNote} (scheduled: ${shiftSchedule.breakEndTime})`;
+              } else {
+                input.notes += ` | System note: ${timeNote}`;
+              }
             }
           }
 
@@ -251,9 +267,25 @@ export const employeeShiftResolvers = {
             const scheduledShiftEnd = createScheduledTime(shiftSchedule.shiftEndTime);
             const minutesDiff = getMinutesDifference(eventTimestamp, scheduledShiftEnd);
             
-            // Warn if leaving too early (more than 30 minutes before scheduled end)
+            // Allow shift end anytime, but add note if leaving significantly early
             if (minutesDiff < -30) {
-              throw new Error(`Shift should end around ${shiftSchedule.shiftEndTime}. You are leaving ${Math.abs(Math.round(minutesDiff))} minutes early.`);
+              const timeNote = `${Math.abs(Math.round(minutesDiff))} minutes early`;
+              
+              // Add automatic note about early departure
+              if (!input.notes) {
+                input.notes = `Shift ended ${timeNote} (scheduled: ${shiftSchedule.shiftEndTime})`;
+              } else {
+                input.notes += ` | System note: Left ${timeNote}`;
+              }
+            } else if (minutesDiff > 30) {
+              // Also note if staying significantly late
+              const timeNote = `${Math.abs(Math.round(minutesDiff))} minutes late`;
+              
+              if (!input.notes) {
+                input.notes = `Shift ended ${timeNote} (scheduled: ${shiftSchedule.shiftEndTime})`;
+              } else {
+                input.notes += ` | System note: Stayed ${timeNote}`;
+              }
             }
           }
         } else {
@@ -269,20 +301,56 @@ export const employeeShiftResolvers = {
           let attendanceStatus = "ON_TIME";
           const minutesLate = getMinutesDifference(eventTimestamp, scheduledStartTime);
           
+          // Debug logging
+          console.log('=== SHIFT START DEBUGGING ===');
+          console.log('Scheduled start time:', shiftSchedule.shiftStartTime);
+          console.log('scheduledStartTime (Date):', scheduledStartTime);
+          console.log('eventTimestamp (Date):', eventTimestamp);
+          console.log('minutesLate:', minutesLate);
+          console.log('============================');
+          
           // Attendance rules:
           // ON_TIME: Within 15 minutes of scheduled start
-          // LATE: More than 15 minutes late but worked at least 4 hours (half day)
-          // HALF_DAY: Arrived very late (more than 2 hours late)
+          // LATE: More than 15 minutes late but less than 4 hours
+          // HALF_DAY: Arrived very late (more than 4 hours late)
           // ABSENT: Will be determined if no shift start recorded for the day
           
-          if (minutesLate > 15 && minutesLate <= 120) {
+          if (minutesLate > 15 && minutesLate <= 240) {
             attendanceStatus = "LATE";
-          } else if (minutesLate > 120) {
+            // Add note about being late
+            const timeNote = `${Math.round(minutesLate)} minutes late`;
+            if (!input.notes) {
+              input.notes = `Arrived ${timeNote} (scheduled: ${shiftSchedule.shiftStartTime})`;
+            } else {
+              input.notes += ` | System note: ${timeNote}`;
+            }
+          } else if (minutesLate > 240) {
             attendanceStatus = "HALF_DAY";
+            // Add note about being very late
+            const hoursLate = Math.floor(minutesLate / 60);
+            const remainingMinutes = Math.round(minutesLate % 60);
+            const timeNote = hoursLate > 0 
+              ? `${hoursLate}h ${remainingMinutes}m late` 
+              : `${remainingMinutes} minutes late`;
+            
+            if (!input.notes) {
+              input.notes = `Arrived ${timeNote} (scheduled: ${shiftSchedule.shiftStartTime})`;
+            } else {
+              input.notes += ` | System note: ${timeNote}`;
+            }
           } else if (minutesLate < -30) {
             // Arrived more than 30 minutes early - still ON_TIME but note it
             attendanceStatus = "ON_TIME";
+            const timeNote = `${Math.abs(Math.round(minutesLate))} minutes early`;
+            if (!input.notes) {
+              input.notes = `Arrived ${timeNote} (scheduled: ${shiftSchedule.shiftStartTime})`;
+            } else {
+              input.notes += ` | System note: ${timeNote}`;
+            }
           }
+          
+          console.log('Final attendanceStatus:', attendanceStatus);
+          console.log('============================');
 
           shift = new EmployeeShift({
             userId: decodedUser.id,
@@ -294,6 +362,8 @@ export const employeeShiftResolvers = {
             events: [],
             status: "IN_PROGRESS",
           });
+          
+          console.log('Creating new shift with attendanceStatus:', attendanceStatus);
         }
 
         // Add event

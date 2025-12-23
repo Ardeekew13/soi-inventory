@@ -7,6 +7,8 @@ export const cashDrawerTypeDefs = gql`
     SALE
     OPENING
     CLOSING
+    REFUND
+    VOID
   }
 
   enum DrawerStatus {
@@ -58,6 +60,8 @@ export const cashDrawerTypeDefs = gql`
     cardSales: Float!
     creditSales: Float!
     gcashSales: Float!
+    totalRefunds: Float!
+    totalVoids: Float!
     createdAt: String!
     updatedAt: String!
   }

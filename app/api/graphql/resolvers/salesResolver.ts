@@ -84,21 +84,24 @@ export const salesResolver = {
 				throw new Error("Insufficient permissions to view sales");
 			}
 
-			try {
-				const query: any = {};
-				
-				// Optional search filter
-				if (search) {
-					query.$or = [
-						{ orderNo: { $regex: search, $options: "i" } },
-						{ status: { $regex: search, $options: "i" } },
-					];
-				}
+		try {
+			const query: any = {};
+			
+			// Cashiers can only see their own sales
+			if (userRole === 'CASHIER') {
+				query.cashierId = context.user.id;
+			}
+			
+			// Optional search filter
+			if (search) {
+				query.$or = [
+					{ orderNo: { $regex: search, $options: "i" } },
+					{ status: { $regex: search, $options: "i" } },
+				];
+			}
 
-				const sales = await Sale.find(query)
-					.sort({ createdAt: -1 });
-
-				// Manually populate saleItems for each sale
+			const sales = await Sale.find(query)
+				.sort({ createdAt: -1 });				// Manually populate saleItems for each sale
 				const salesWithItems = await Promise.all(
 					sales.map(async (sale) => {
 						const saleItems = await SaleItem.find({ saleId: sale._id });
@@ -184,21 +187,26 @@ export const salesResolver = {
 				throw new Error("Insufficient permissions to view parked sales");
 			}
 
-			try {
-				const sales = await Sale.find({ 
-					status: "PARKED",
-					isDeleted: { $ne: true }
-				})
-					.sort({ updatedAt: -1 })
-					.populate({
-						path: "saleItems",
-						populate: {
-							path: "productId",
-							model: "Product",
-						},
-					});
-
-				return sales.map((sale) => {
+		try {
+			const query: any = { 
+				status: "PARKED",
+				isDeleted: { $ne: true }
+			};
+			
+			// Cashiers can only see their own parked sales
+			if (userRole === 'CASHIER') {
+				query.cashierId = context.user.id;
+			}
+			
+			const sales = await Sale.find(query)
+				.sort({ updatedAt: -1 })
+				.populate({
+					path: "saleItems",
+					populate: {
+						path: "productId",
+						model: "Product",
+					},
+				});				return sales.map((sale) => {
 					const saleObj = sale.toObject();
 					return {
 						...saleObj,
@@ -251,20 +259,21 @@ export const salesResolver = {
 					};
 				}
 
-				// Get sales for the specified period (COMPLETED only)
-				const sales = await Sale.find(dateFilter);
-				
-				// Calculate current period totals
-				const totalAmountSales = sales.reduce((sum, sale) => sum + (sale.totalAmount || 0), 0);
-				const totalCostOfGoods = sales.reduce((sum, sale) => sum + (sale.costOfGoods || 0), 0);
-				const grossProfit = sales.reduce((sum, sale) => sum + (sale.grossProfit || 0), 0);
-				
-				// Calculate total items sold
-				const saleIds = sales.map(sale => sale._id);
-				const saleItems = await SaleItem.find({ saleId: { $in: saleIds } });
-				const totalItemsSold = saleItems.reduce((sum, item) => sum + (item.quantity || 0), 0);
-
-				// Calculate previous period for percentage comparison
+			// Get sales for the specified period (COMPLETED only)
+			const sales = await Sale.find(dateFilter);
+			
+			// Calculate current period totals
+			const totalAmountSales = sales.reduce((sum, sale) => sum + (sale.totalAmount || 0), 0);
+			const totalCostOfGoods = sales.reduce((sum, sale) => sum + (sale.costOfGoods || 0), 0);
+			const grossProfit = sales.reduce((sum, sale) => sum + (sale.grossProfit || 0), 0);
+			const numberOfTransactions = sales.length;
+			const totalDiscounts = 0; // Will be implemented when discount feature is added
+			const totalNetSales = totalAmountSales - totalDiscounts;
+			
+			// Calculate total items sold
+			const saleIds = sales.map(sale => sale._id);
+			const saleItems = await SaleItem.find({ saleId: { $in: saleIds } });
+			const totalItemsSold = saleItems.reduce((sum, item) => sum + (item.quantity || 0), 0);				// Calculate previous period for percentage comparison
 				let totalSalesPercentage = 0;
 				let totalCostPercentage = 0;
 				let grossProfitPercentage = 0;
@@ -363,6 +372,103 @@ export const salesResolver = {
 					});
 				}
 
+				// Sales by payment method (from cash drawer transactions)
+				const cashDrawerFilter: any = { type: "SALE" };
+				if (dateFilter.createdAt) {
+					cashDrawerFilter.createdAt = dateFilter.createdAt;
+				}
+				
+				const cashDrawerTxns = await require('../models/CashDrawer').default.find(cashDrawerFilter);
+
+				const paymentMethodStats = cashDrawerTxns.reduce((acc: any, txn: any) => {
+					const method = txn.paymentMethod || "CASH";
+					if (!acc[method]) {
+						acc[method] = { totalAmount: 0, count: 0 };
+					}
+					acc[method].totalAmount += txn.amount || 0;
+					acc[method].count += 1;
+					return acc;
+				}, {});
+
+				const salesByPaymentMethod = Object.entries(paymentMethodStats).map(([method, stats]: [string, any]) => ({
+					paymentMethod: method,
+					totalAmount: stats.totalAmount,
+					count: stats.count,
+				}));
+
+			// Refunds (get sales with REFUNDED status)
+			const refundFilter: any = { 
+				status: "REFUNDED"
+			};
+			if (dateFilter.createdAt) {
+				refundFilter.createdAt = dateFilter.createdAt;
+			}
+			
+			const refundedSales = await Sale.find(refundFilter);
+			const totalRefunds = refundedSales.reduce((sum, sale) => sum + (sale.totalAmount || 0), 0);
+			const numberOfRefunds = refundedSales.length;				// Sales by item (top selling items with revenue)
+				const itemStats = new Map<string, { itemName: string; totalAmount: number; quantity: number }>();
+				for (const item of saleItems) {
+					const product = await Product.findById(item.productId);
+					if (product) {
+						const existing = itemStats.get(item.productId.toString());
+						if (existing) {
+							existing.quantity += item.quantity;
+							existing.totalAmount += item.priceAtSale * item.quantity;
+						} else {
+							itemStats.set(item.productId.toString(), {
+								itemName: product.name,
+								quantity: item.quantity,
+								totalAmount: item.priceAtSale * item.quantity,
+							});
+						}
+					}
+				}
+
+				const salesByItem = Array.from(itemStats.values())
+					.sort((a, b) => b.totalAmount - a.totalAmount)
+					.slice(0, 10);
+
+				// Sales by cashier
+				const cashierStats: any = {};
+				for (const sale of sales) {
+					const cashierName = sale.cashierName || "Unknown";
+					if (!cashierStats[cashierName]) {
+						cashierStats[cashierName] = { totalAmount: 0, count: 0 };
+					}
+					cashierStats[cashierName].totalAmount += sale.totalAmount || 0;
+					cashierStats[cashierName].count += 1;
+				}
+
+				const salesByCashier = Object.entries(cashierStats).map(([cashierName, stats]: [string, any]) => ({
+					cashierName,
+					totalAmount: stats.totalAmount,
+					count: stats.count,
+				}));
+
+				// Sales by hour (hourly breakdown)
+				const hourStats: any = {};
+				for (const sale of sales) {
+					const hour = new Date(sale.createdAt).getHours();
+					const hourLabel = `${hour.toString().padStart(2, '0')}:00`;
+					if (!hourStats[hourLabel]) {
+						hourStats[hourLabel] = { totalAmount: 0, count: 0 };
+					}
+					hourStats[hourLabel].totalAmount += sale.totalAmount || 0;
+					hourStats[hourLabel].count += 1;
+				}
+
+				// Fill in missing hours with zero values
+				const salesByHour = [];
+				for (let h = 0; h < 24; h++) {
+					const hourLabel = `${h.toString().padStart(2, '0')}:00`;
+					salesByHour.push({
+						hour: hourLabel,
+						totalAmount: hourStats[hourLabel]?.totalAmount || 0,
+						count: hourStats[hourLabel]?.count || 0,
+					});
+				}
+
 				return {
 					grossProfit,
 					totalCostOfGoods,
@@ -374,6 +480,15 @@ export const salesResolver = {
 					availableYears,
 					topProductSold,
 					groupSales,
+					salesByPaymentMethod,
+					totalRefunds,
+					numberOfRefunds,
+					salesByItem,
+					salesByCashier,
+					salesByHour,
+					numberOfTransactions,
+					totalDiscounts,
+					totalNetSales,
 				};
 			} catch (err) {
 				console.error("Error fetching sale report:", err);
@@ -444,9 +559,8 @@ export const salesResolver = {
 					orderNo = sale.orderNo;
 
 				} else {
-					// Generate orderNo for new parked sale with unique suffix to prevent conflicts
-					const random = Math.random().toString(36).substring(2, 8).toUpperCase();
-					orderNo = await generateOrderNo("PARK") + `-${random}`;
+					// Generate orderNo for new parked sale
+					orderNo = await generateOrderNo("PARK");
 					
 					sale = await Sale.create({
 						totalAmount: 0,
@@ -680,9 +794,8 @@ export const salesResolver = {
 
 					sale = await Sale.findById(id);
 				} else {
-					// Create new completed sale - generate new orderNo with unique suffix
-					const random = Math.random().toString(36).substring(2, 8).toUpperCase();
-					orderNo = await generateOrderNo() + `-${random}`;
+					// Create new completed sale
+					orderNo = await generateOrderNo();
 					
 					sale = await Sale.create({
 						totalAmount,
@@ -865,14 +978,12 @@ export const salesResolver = {
 					await openDrawer.save();
 				}
 
-				console.log("Marking sale as VOID with refund reason");
-				await Sale.findByIdAndUpdate(id, {
-					status: "VOID",
-					voidReason: `REFUND: ${refundReason}`,
-					isDeleted: true,
-				});
-
-				console.log("Sale refunded successfully, ingredients returned to inventory");
+			console.log("Marking sale as REFUNDED with refund reason");
+			await Sale.findByIdAndUpdate(id, {
+				status: "REFUNDED",
+				voidReason: `REFUND: ${refundReason}`,
+				isDeleted: true,
+			});				console.log("Sale refunded successfully, ingredients returned to inventory");
 				return successResponse("Sale refunded successfully and ingredients returned to inventory", null);
 			} catch (err: any) {
 				console.error("Error refunding sale:", err);
@@ -991,17 +1102,16 @@ export const salesResolver = {
 					}
 				}
 
-				const grossProfit = totalAmount - costOfGoods;
+			const grossProfit = totalAmount - costOfGoods;
 
-				// Update sale totals
-				await Sale.findByIdAndUpdate(saleId, {
-					totalAmount,
-					costOfGoods,
-					grossProfit,
-					voidReason: `ITEM CHANGED: ${reason} (${oldProduct.name} → ${newProduct.name})`,
-				});
-
-				console.log("Item changed successfully");
+			// Update sale totals and status
+			await Sale.findByIdAndUpdate(saleId, {
+				totalAmount,
+				costOfGoods,
+				grossProfit,
+				status: "ITEM_CHANGED",
+				voidReason: `ITEM CHANGED: ${reason} (${oldProduct.name} → ${newProduct.name})`,
+			});				console.log("Item changed successfully");
 				return successResponse(
 					`Item changed from ${oldProduct.name} to ${newProduct.name}. Inventory updated.`,
 					null
@@ -1029,7 +1139,6 @@ export const salesResolver = {
 			}
 
 			try {
-				console.log("⚠️ voidSale is deprecated. Use refundSale for completed sales.");
 				console.log("Voiding sale - ID:", JSON.stringify(id), "Reason:", voidReason);
 				
 				if (!id) {
@@ -1049,18 +1158,56 @@ export const salesResolver = {
 					return errorResponse("Sale is already voided");
 				}
 
-				// For backward compatibility, void without returning inventory
-				// Recommend using refundSale instead
-				console.log("Voiding sale WITHOUT returning inventory (use refundSale to return inventory)");
+				// Return ingredients to inventory
+				console.log("Returning ingredients to inventory for voided sale");
 				
+				const saleItems = await SaleItem.find({ saleId: id });
+
+				for (const saleItem of saleItems) {
+					const product = await Product.findById(saleItem.productId);
+					if (!product) continue;
+
+					const quantitySold = saleItem.quantity;
+					const ingredients = await ProductIngredient.find({ productId: product._id });
+
+					for (const ingredient of ingredients) {
+						const quantityToReturn = ingredient.quantityUsed * quantitySold;
+						
+						await Item.findByIdAndUpdate(ingredient.itemId, {
+							$inc: { quantity: quantityToReturn }
+						});
+
+						const item = await Item.findById(ingredient.itemId);
+						console.log(`Returned ${quantityToReturn} units of ${item?.name || 'unknown'} to inventory`);
+					}
+				}
+
+				// If sale was completed (paid), deduct from cash drawer
+				if (sale.status === "COMPLETED") {
+					console.log("Voiding completed sale - deducting from cash drawer");
+					const openDrawer = await CashDrawer.findOne({ status: "OPEN" }).sort({ openedAt: -1 });
+					if (openDrawer) {
+						openDrawer.transactions.push({
+							type: "VOID",
+							amount: -sale.totalAmount,
+							description: `Void: ${sale.orderNo} - ${voidReason}`,
+							saleId: sale._id,
+							paymentMethod: "CASH",
+						} as any);
+						await openDrawer.save();
+						console.log(`Deducted ${sale.totalAmount} from cash drawer`);
+					}
+				}
+
+				// Mark sale as voided
 				await Sale.findByIdAndUpdate(id, {
 					status: "VOID",
 					voidReason,
 					isDeleted: true,
 				});
 
-				console.log("Sale voided (inventory NOT returned). Use refundSale to return inventory.");
-				return successResponse("Sale voided. Note: Inventory was NOT returned. Use refund for inventory return.", null);
+				console.log("Sale voided successfully, ingredients returned to inventory");
+				return successResponse("Sale voided successfully and ingredients returned to inventory", null);
 			} catch (err: any) {
 				console.error("Error voiding sale:", err);
 				return errorResponse(err.message || "Failed to void sale");

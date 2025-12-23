@@ -102,17 +102,25 @@ export default function ShiftTracking() {
   const [noCameraMode, setNoCameraMode] = useState(false);
 
   const { data: currentShiftData, refetch: refetchCurrentShift } = useQuery(
-    MY_CURRENT_SHIFT_QUERY
+    MY_CURRENT_SHIFT_QUERY,
+    {
+      fetchPolicy: "network-only", // Always fetch fresh data
+    }
   );
   const { data: historyData, refetch: refetchHistory } = useQuery(
     MY_SHIFT_HISTORY_QUERY,
     {
       variables: { limit: 10, offset: 0 },
+      fetchPolicy: "network-only", // Always fetch fresh data
     }
   );
 
   const [recordShiftEvent, { loading: recording }] = useMutation(
-    RECORD_SHIFT_EVENT_MUTATION
+    RECORD_SHIFT_EVENT_MUTATION,
+    {
+      refetchQueries: ["MyCurrentShift", "MyShiftHistory"],
+      awaitRefetchQueries: true,
+    }
   );
 
   const currentShift = currentShiftData?.myCurrentShift as Shift | null;
@@ -329,9 +337,17 @@ export default function ShiftTracking() {
         notes: notes.trim() || undefined,
       };
       
-      await recordShiftEvent({
+      console.log('=== FRONTEND: Recording shift event ===');
+      console.log('Event type:', currentEventType);
+      console.log('Input:', input);
+      
+      const result = await recordShiftEvent({
         variables: { input },
       });
+      
+      console.log('=== FRONTEND: Mutation result ===');
+      console.log('Result:', result.data);
+      console.log('Attendance Status:', result.data?.recordShiftEvent?.attendanceStatus);
 
       message.success(
         `${eventTypeLabels[currentEventType].label} recorded successfully`
@@ -340,6 +356,9 @@ export default function ShiftTracking() {
       // Refetch data
       await refetchCurrentShift();
       await refetchHistory();
+      
+      console.log('=== FRONTEND: After refetch ===');
+      console.log('Current shift:', currentShift);
 
       // Close modal
       stopCamera();
@@ -399,7 +418,34 @@ export default function ShiftTracking() {
       title: "Notes",
       dataIndex: "notes",
       key: "notes",
-      render: (notes: string) => notes || "-",
+      render: (notes: string) => {
+        if (!notes) return <Text type="secondary">-</Text>;
+        
+        // Highlight system notes
+        const hasSystemNote = notes.includes("System note:");
+        
+        return (
+          <div style={{ maxWidth: 300 }}>
+            {hasSystemNote ? (
+              <Text>
+                {notes.split(" | ").map((part, idx) => (
+                  <div key={idx}>
+                    {part.includes("System note:") ? (
+                      <Tag color="orange" style={{ marginTop: 4 }}>
+                        {part.replace("System note: ", "")}
+                      </Tag>
+                    ) : (
+                      <Text>{part}</Text>
+                    )}
+                  </div>
+                ))}
+              </Text>
+            ) : (
+              <Text>{notes}</Text>
+            )}
+          </div>
+        );
+      },
     },
   ];
 
