@@ -52,7 +52,7 @@ export const employeeShiftTypeDefs = gql`
   extend type Query {
     myCurrentShift: EmployeeShift
     myShiftHistory(limit: Int, offset: Int): [EmployeeShift!]!
-    allShifts(date: String, status: ShiftStatus, limit: Int, offset: Int): [EmployeeShift!]!
+    allShifts(startDate: String, endDate: String, userId: ID, status: ShiftStatus, limit: Int, offset: Int): [EmployeeShift!]!
     shiftById(id: ID!): EmployeeShift
   }
 

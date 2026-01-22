@@ -30,6 +30,11 @@ const saleItemSchema = new mongoose.Schema(
   }
 );
 
+// Indexes for performance - CRITICAL for queries that filter by saleId
+saleItemSchema.index({ saleId: 1 }); // For finding items by sale
+saleItemSchema.index({ productId: 1 }); // For product analytics
+saleItemSchema.index({ saleId: 1, productId: 1 }); // Compound index for both
+
 const SaleItem =
   mongoose.models.SaleItem || mongoose.model("SaleItem", saleItemSchema);
 export default SaleItem;

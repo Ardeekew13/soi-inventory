@@ -111,8 +111,8 @@ export default function NavbarLayout({
 	const handleLogout = async () => {
 		try {
 			await logout();
-			// Reset Apollo cache completely and stop all active queries
-			await apolloClient.resetStore();
+			// Clear Apollo cache without refetching queries
+			await apolloClient.clearStore();
 			// Force redirect to login page
 			router.push("/");
 		} catch (error) {

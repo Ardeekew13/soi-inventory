@@ -18,24 +18,32 @@ const LoginPage = () => {
     onCompleted: async (data) => {
       if (data?.login?.success) {
         messageApi.success(data?.login?.message);
-        
-        // Clear any stale cache data and update with new user data
-        await apolloClient.resetStore();
-        
+
         // Update Apollo cache with user data so Navbar shows immediately
         if (data.login.user) {
           apolloClient.writeQuery({
             query: ME_QUERY,
             data: {
               me: {
-                ...data.login.user,
+                __typename: 'User',
+                _id: data.login.user._id,
+                username: data.login.user.username,
+                role: data.login.user.role,
+                firstName: data.login.user.firstName,
+                lastName: data.login.user.lastName,
+                isActive: data.login.user.isActive,
                 permissions: data.login.user.permissions || {},
               },
             },
           });
         }
-        
-        router.push("/dashboard");
+
+        // Redirect based on user role
+        if (data.login.user?.role === "CASHIER") {
+          router.push("/inventory");
+        } else {
+          router.push("/dashboard");
+        }
       } else {
         messageApi.error(data?.login?.message);
       }
@@ -64,65 +72,65 @@ const LoginPage = () => {
 
   return (
     // <AuthGuard>
-      <div style={{ minHeight: "100vh", background: "#fff", padding: 20 }}>
-        {contextHolder}
-        <Row justify="center" align="middle" style={{ minHeight: "100vh" }}>
-          <Col xs={24} lg={8} xl={8}>
-            <Form
-              form={form}
-              name="login"
-              layout="vertical"
-              onFinish={handleSubmit}
-              style={{
-                background: "#fff",
-                padding: 30,
-                borderRadius: 8,
-                boxShadow: "0 4px 12px rgba(0,0,0,0.06)",
-              }}
+    <div style={{ minHeight: "100vh", background: "#fff", padding: 20 }}>
+      {contextHolder}
+      <Row justify="center" align="middle" style={{ minHeight: "100vh" }}>
+        <Col xs={24} lg={8} xl={8}>
+          <Form
+            form={form}
+            name="login"
+            layout="vertical"
+            onFinish={handleSubmit}
+            style={{
+              background: "#fff",
+              padding: 30,
+              borderRadius: 8,
+              boxShadow: "0 4px 12px rgba(0,0,0,0.06)",
+            }}
+          >
+            <Typography.Title level={3} style={{ textAlign: "center" }}>
+              Welcome to
+            </Typography.Title>
+
+            <Row justify="center" style={{ marginBottom: 24 }}>
+              <Image src={logo} alt="logo" width={150} height={150} />
+            </Row>
+
+            <Form.Item
+              label="Username"
+              name="username"
+              rules={[
+                { required: true, message: "Please input your username!" },
+              ]}
             >
-              <Typography.Title level={3} style={{ textAlign: "center" }}>
-                Welcome to
-              </Typography.Title>
+              <Input placeholder="Enter your username" />
+            </Form.Item>
 
-              <Row justify="center" style={{ marginBottom: 24 }}>
-                <Image src={logo} alt="logo" width={150} height={150} />
-              </Row>
+            <Form.Item
+              label="Password"
+              name="password"
+              rules={[
+                { required: true, message: "Please input your password!" },
+              ]}
+            >
+              <Input.Password placeholder="Enter your password" />
+            </Form.Item>
 
-              <Form.Item
-                label="Username"
-                name="username"
-                rules={[
-                  { required: true, message: "Please input your username!" },
-                ]}
+            <Form.Item>
+              <Button
+                block
+                type="primary"
+                form="login"
+                htmlType="submit"
+                loading={loading}
               >
-                <Input placeholder="Enter your username" />
-              </Form.Item>
-
-              <Form.Item
-                label="Password"
-                name="password"
-                rules={[
-                  { required: true, message: "Please input your password!" },
-                ]}
-              >
-                <Input.Password placeholder="Enter your password" />
-              </Form.Item>
-
-              <Form.Item>
-                <Button
-                  block
-                  type="primary"
-                  form="login"
-                  htmlType="submit"
-                  loading={loading}
-                >
-                  Login
-                </Button>
-              </Form.Item>
-            </Form>
-          </Col>
-        </Row>
-      </div>
+                Login
+              </Button>
+            </Form.Item>
+          </Form>
+        </Col>
+      </Row>
+    </div>
     // </AuthGuard>
   );
 };

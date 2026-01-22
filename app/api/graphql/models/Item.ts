@@ -40,6 +40,7 @@ const itemSchema = new mongoose.Schema(
 itemSchema.index({ currentStock: 1 }); // For low stock queries
 itemSchema.index({ createdAt: -1 }); // For sorting by date
 itemSchema.index({ isActive: 1 }); // For filtering active items
+itemSchema.index({ isActive: 1, name: 1 }); // Compound index for filtered search (most common query)
 
 const Item = mongoose.models.Item || mongoose.model("Item", itemSchema);
 export default Item;

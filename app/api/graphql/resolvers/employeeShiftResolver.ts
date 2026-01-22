@@ -51,7 +51,7 @@ export const employeeShiftResolvers = {
     // Get all shifts (managers/admins)
     allShifts: async (
       _: unknown,
-      { date, status, limit = 50, offset = 0 }: any,
+      { startDate, endDate, userId, status, limit = 50, offset = 0 }: any,
       { request }: GraphQLContext
     ) => {
       const authToken = request.cookies.get("auth_token")?.value ?? "";
@@ -70,13 +70,26 @@ export const employeeShiftResolvers = {
 
       const query: any = {};
       
-      if (date) {
-        const targetDate = new Date(date);
-        targetDate.setHours(0, 0, 0, 0);
-        const nextDay = new Date(targetDate);
-        nextDay.setDate(nextDay.getDate() + 1);
+      // Handle date range filter
+      if (startDate || endDate) {
+        query.date = {};
         
-        query.date = { $gte: targetDate, $lt: nextDay };
+        if (startDate) {
+          const start = new Date(startDate);
+          start.setHours(0, 0, 0, 0);
+          query.date.$gte = start;
+        }
+        
+        if (endDate) {
+          const end = new Date(endDate);
+          end.setHours(23, 59, 59, 999);
+          query.date.$lte = end;
+        }
+      }
+      
+      // Filter by specific user
+      if (userId) {
+        query.userId = userId;
       }
       
       if (status) {
@@ -267,7 +280,17 @@ export const employeeShiftResolvers = {
             const scheduledShiftEnd = createScheduledTime(shiftSchedule.shiftEndTime);
             const minutesDiff = getMinutesDifference(eventTimestamp, scheduledShiftEnd);
             
-            // Allow shift end anytime, but add note if leaving significantly early
+            // Validate: Can only time out up to 2 hours (120 minutes) after shift end
+            if (minutesDiff > 120) {
+              const hoursLate = Math.floor(minutesDiff / 60);
+              const remainingMinutes = Math.round(minutesDiff % 60);
+              const timeNote = hoursLate > 0 
+                ? `${hoursLate}h ${remainingMinutes}m` 
+                : `${remainingMinutes} minutes`;
+              throw new Error(`Cannot time out more than 2 hours after shift end. You are ${timeNote} past scheduled end time. Scheduled end: ${shiftSchedule.shiftEndTime}`);
+            }
+            
+            // Allow shift end anytime within 2 hours after scheduled end, but add note if leaving significantly early
             if (minutesDiff < -30) {
               const timeNote = `${Math.abs(Math.round(minutesDiff))} minutes early`;
               
@@ -309,6 +332,16 @@ export const employeeShiftResolvers = {
           console.log('minutesLate:', minutesLate);
           console.log('============================');
           
+          // Validate: Can only time in 2 hours (120 minutes) before shift start
+          if (minutesLate < -120) {
+            const hoursEarly = Math.abs(Math.floor(minutesLate / 60));
+            const remainingMinutes = Math.abs(Math.round(minutesLate % 60));
+            const timeNote = hoursEarly > 0 
+              ? `${hoursEarly}h ${remainingMinutes}m` 
+              : `${remainingMinutes} minutes`;
+            throw new Error(`Cannot time in more than 2 hours before shift start. You are ${timeNote} early. Scheduled start: ${shiftSchedule.shiftStartTime}`);
+          }
+          
           // Attendance rules:
           // ON_TIME: Within 15 minutes of scheduled start
           // LATE: More than 15 minutes late but less than 4 hours
@@ -338,8 +371,8 @@ export const employeeShiftResolvers = {
             } else {
               input.notes += ` | System note: ${timeNote}`;
             }
-          } else if (minutesLate < -30) {
-            // Arrived more than 30 minutes early - still ON_TIME but note it
+          } else if (minutesLate < -30 && minutesLate >= -120) {
+            // Arrived between 30 minutes and 2 hours early - still ON_TIME but note it
             attendanceStatus = "ON_TIME";
             const timeNote = `${Math.abs(Math.round(minutesLate))} minutes early`;
             if (!input.notes) {

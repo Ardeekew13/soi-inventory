@@ -43,7 +43,16 @@ import {
   Space,
   Typography,
   Alert,
+  Tooltip,
+  Badge,
 } from "antd";
+import {
+  SyncOutlined,
+  CheckCircleOutlined,
+  WifiOutlined,
+  DisconnectOutlined,
+  ClockCircleOutlined,
+} from "@ant-design/icons";
 import dayjs from "dayjs";
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
@@ -97,10 +106,15 @@ const PointOfSale = () => {
   const [openingBalance, setOpeningBalance] = useState<number>(0);
   const [paymentMethod, setPaymentMethod] = useState<string>("CASH");
   const [offlineParkedSales, setOfflineParkedSales] = useState<any[]>([]);
+  const [lastSyncTime, setLastSyncTime] = useState<Date>(new Date());
+  const [isSyncing, setIsSyncing] = useState(false);
 
   const { data, loading, refetch } = useQuery<Query>(GET_PRODUCTS, {
     variables: { search, limit: 100 },
     skip: permissionLoading,
+    onCompleted: () => {
+      setLastSyncTime(new Date());
+    },
   });
 
   const {
@@ -109,6 +123,9 @@ const PointOfSale = () => {
     refetch: refetchParked,
   } = useQuery<Query>(GET_PARKED_SALES, {
     skip: permissionLoading,
+    onCompleted: () => {
+      setLastSyncTime(new Date());
+    },
   });
 
   const { data: discountsData } = useQuery(GET_DISCOUNTS, {
@@ -291,6 +308,53 @@ const PointOfSale = () => {
     () => parkedData?.parkedSales || [],
     [parkedData?.parkedSales]
   );
+
+  // Calculate time since last sync
+  const [timeSinceSync, setTimeSinceSync] = useState<string>("Just now");
+  
+  useEffect(() => {
+    const updateTimeSinceSync = () => {
+      const now = new Date();
+      const diffMs = now.getTime() - lastSyncTime.getTime();
+      const diffMinutes = Math.floor(diffMs / 60000);
+      const diffSeconds = Math.floor(diffMs / 1000);
+      
+      if (diffMinutes < 1) {
+        setTimeSinceSync("Just now");
+      } else if (diffMinutes === 1) {
+        setTimeSinceSync("1 minute ago");
+      } else if (diffMinutes < 60) {
+        setTimeSinceSync(`${diffMinutes} minutes ago`);
+      } else {
+        const hours = Math.floor(diffMinutes / 60);
+        setTimeSinceSync(`${hours} hour${hours > 1 ? 's' : ''} ago`);
+      }
+    };
+
+    updateTimeSinceSync();
+    const interval = setInterval(updateTimeSinceSync, 10000); // Update every 10 seconds
+
+    return () => clearInterval(interval);
+  }, [lastSyncTime]);
+
+  // Manual sync function
+  const handleManualSync = useCallback(async () => {
+    if (!isOnline) {
+      messageApi.warning("Cannot sync while offline");
+      return;
+    }
+    
+    setIsSyncing(true);
+    try {
+      await Promise.all([refetch(), refetchParked(), refetchCashDrawer()]);
+      setLastSyncTime(new Date());
+      messageApi.success("Synced successfully");
+    } catch (error) {
+      messageApi.error("Sync failed");
+    } finally {
+      setIsSyncing(false);
+    }
+  }, [isOnline, refetch, refetchParked, refetchCashDrawer, messageApi]);
   const discounts = useMemo(
     () => discountsData?.discounts || [],
     [discountsData?.discounts]
@@ -634,13 +698,14 @@ const PointOfSale = () => {
 
   const handleLoadParked = useCallback(
     (parked: Sale) => {
+      console.log("Selected parked order:", parked);
       // Convert parked sale items to cart products
-      const cartItems: CartProduct[] = parked.saleItems?.map((item: any) => ({
-        ...item.product,
-        quantity: item.quantity,
-        quantityPrinted: item.quantityPrinted || 0, // Preserve quantityPrinted
+      const cartItems: CartProduct[] = parked?.saleItems?.map((item: any) => ({
+        ...item?.product,
+        quantity: item?.quantity,
+        quantityPrinted: item?.quantityPrinted || 0, // Preserve quantityPrinted
       })) as CartProduct[];
-
+      console.log("Loading parked order into cart:", cartItems);
       setCart(cartItems);
       setOrderType(parked.orderType as OrderType);
       setTableNumber(parked?.tableNumber ?? "");
@@ -653,7 +718,7 @@ const PointOfSale = () => {
 
   const handleDeleteParked = useCallback((id: string, orderNo: string) => {
     setVoidingSaleId(id);
-    setVoidingOrderNo(orderNo);
+    setVoidingOrderNo(orderNo); 
     setVoidModalOpen(true);
   }, []);
 
@@ -730,99 +795,104 @@ const PointOfSale = () => {
     messageApi,
   ]);
 
-  // Keyboard shortcuts for common actions (F2=Park, F3=Pay, F4=Parked Orders, ESC=Clear)
-  useEffect(() => {
-    const handleKeyPress = (e: KeyboardEvent) => {
-      // Don't trigger shortcuts if user is typing in an input or modal is open
-      if (
-        e.target instanceof HTMLInputElement ||
-        e.target instanceof HTMLTextAreaElement ||
-        paymentModalOpen ||
-        tableModalOpen ||
-        parkedDrawerOpen
-      ) {
-        return;
-      }
-
-      // F2 - Park order
-      if (e.key === "F2") {
-        e.preventDefault();
-        handlePark();
-      }
-      // F3 - Open payment
-      else if (e.key === "F3") {
-        e.preventDefault();
-        handleOpenPayment();
-      }
-      // F4 - Show parked orders
-      else if (e.key === "F4") {
-        e.preventDefault();
-        setParkedDrawerOpen(true);
-      }
-      // ESC - Clear cart (with confirmation)
-      else if (e.key === "Escape" && cart.length > 0) {
-        e.preventDefault();
-        Modal.confirm({
-          title: "Clear Cart?",
-          content: "Are you sure you want to clear all items from the cart?",
-          okText: "Yes, Clear",
-          cancelText: "Cancel",
-          okType: "danger",
-          onOk: handleClearCart,
-        });
-      }
-    };
-
-    window.addEventListener("keydown", handleKeyPress);
-    return () => window.removeEventListener("keydown", handleKeyPress);
-  }, [
-    cart.length,
-    paymentModalOpen,
-    tableModalOpen,
-    parkedDrawerOpen,
-    handlePark,
-    handleOpenPayment,
-    handleClearCart,
-  ]);
-
   return (
     <div
       style={{
         padding: "12px",
         boxSizing: "border-box",
-        overflow: "auto",
       }}
     >
       {contextHolder}
 
-      {/* Offline Sync Status - Inline */}
-      <div style={{ marginBottom: 12 }}>
-        <OfflineSyncStatus showInline />
-      </div>
+      {/* Sync Status and Cash Drawer Alerts Row */}
+      <Row gutter={[8, 8]} style={{ marginBottom: 12 }}>
+        {/* Sync Status Alert */}
+        <Col xs={24} sm={24} md={12} lg={12} xl={12}>
+          <Alert
+            message={
+              <Flex justify="space-between" align="center" wrap="wrap" gap={8}>
+                <Space size="small">
+                  {isOnline ? (
+                    <Tooltip title="Connected to server">
+                      <Badge status="success" />
+                      <WifiOutlined style={{ color: "#52c41a" }} />
+                    </Tooltip>
+                  ) : (
+                    <Tooltip title="Offline - Data will sync when connected">
+                      <Badge status="error" />
+                      <DisconnectOutlined style={{ color: "#ff4d4f" }} />
+                    </Tooltip>
+                  )}
+                  <span style={{ fontSize: isMobile ? 11 : 13 }}>
+                    {isOnline ? (
+                      <>
+                        <CheckCircleOutlined style={{ color: "#52c41a", marginRight: 4 }} />
+                        <strong>Synced</strong> {timeSinceSync}
+                        {offlineParkedSales.length > 0 && (
+                          <span style={{ marginLeft: 8, color: "#fa8c16" }}>
+                            • {offlineParkedSales.length} pending order{offlineParkedSales.length > 1 ? 's' : ''}
+                          </span>
+                        )}
+                      </>
+                    ) : (
+                      <>
+                        <DisconnectOutlined style={{ color: "#ff4d4f", marginRight: 4 }} />
+                        <strong>Offline Mode</strong> - Orders will sync when connected
+                        {offlineParkedSales.length > 0 && (
+                          <span style={{ marginLeft: 8 }}>
+                            • {offlineParkedSales.length} pending
+                          </span>
+                        )}
+                      </>
+                    )}
+                  </span>
+                </Space>
+                {isOnline && (
+                  <Tooltip title="Refresh data from database">
+                    <Button
+                      size="small"
+                      icon={<SyncOutlined spin={isSyncing || loading || parkedLoading} />}
+                      onClick={handleManualSync}
+                      loading={isSyncing}
+                      disabled={isSyncing || loading || parkedLoading}
+                    >
+                      {isSyncing ? "Syncing..." : "Sync"}
+                    </Button>
+                  </Tooltip>
+                )}
+              </Flex>
+            }
+            type={isOnline ? "info" : "warning"}
+            showIcon={false}
+            style={{ backgroundColor: 'white', border: '1px solid #d9d9d9' }}
+          />
+        </Col>
 
-      {/* Cash Drawer Status Alert */}
-      {hasCashDrawer && (
-        <Alert
-          message={
-            <Flex justify="space-between" align="center" wrap="wrap" gap={8}>
-              <span style={{ fontSize: isMobile ? 12 : 14 }}>
-                <strong>Cash Drawer Open</strong> - Current Balance:{" "}
-                <strong style={{ color: "#52c41a" }}>
-                  ₱
-                  {cashDrawerData?.currentCashDrawer?.currentBalance?.toLocaleString() ||
-                    "0.00"}
-                </strong>
-              </span>
-              <Button size="small" onClick={() => router.push("/cash-drawer")}>
-                Manage Drawer
-              </Button>
-            </Flex>
-          }
-          type="success"
-          style={{ marginBottom: 12 }}
-          closable
-        />
-      )}
+        {/* Cash Drawer Status Alert */}
+        {hasCashDrawer && (
+          <Col xs={24} sm={24} md={12} lg={12} xl={12}>
+            <Alert
+              message={
+                <Flex justify="space-between" align="center" wrap="wrap" gap={8}>
+                  <span style={{ fontSize: isMobile ? 12 : 14 }}>
+                    <strong>Cash Drawer Open</strong> - Current Balance:{" "}
+                    <strong style={{ color: "#52c41a" }}>
+                      ₱
+                      {cashDrawerData?.currentCashDrawer?.currentBalance?.toLocaleString() ||
+                        "0.00"}
+                    </strong>
+                  </span>
+                  <Button size="small" onClick={() => router.push("/cash-drawer")}>
+                    Manage Drawer
+                  </Button>
+                </Flex>
+              }
+              type="success"
+              closable
+            />
+          </Col>
+        )}
+      </Row>
 
       <Row gutter={[8, 8]}>
         <Col xs={24} sm={24} md={24} lg={15} xl={15}>
@@ -1176,16 +1246,16 @@ const PointOfSale = () => {
             handleClearCart();
             setCurrentParkedId(null);
           }}
-          orderNo={currentParkedSale.orderNo || ""}
-          orderType={currentParkedSale.orderType || ""}
-          tableNumber={currentParkedSale.tableNumber || ""}
-          items={currentParkedSale.saleItems?.map((item: any) => ({
-            _id: item._id,
-            quantity: item.quantity,
-            quantityPrinted: item.quantityPrinted || 0,
+          orderNo={currentParkedSale?.orderNo || ""}
+          orderType={currentParkedSale?.orderType || ""}
+          tableNumber={currentParkedSale?.tableNumber || ""}
+          items={currentParkedSale?.saleItems?.map((item: any) => ({
+            _id: item?._id,
+            quantity: item?.quantity,
+            quantityPrinted: item?.quantityPrinted || 0,
             product: {
-              name: item.product.name,
-              price: item.product.price,
+              name: item?.product?.name,
+              price: item?.product?.price,
             },
           }))}
           onSendToKitchen={handleSendToKitchen}
@@ -1203,8 +1273,9 @@ const PointOfSale = () => {
           </Typography.Title>
         }
         open={cashDrawerModalOpen}
-        closable={false}
-        maskClosable={false}
+        closable={true}
+        maskClosable={true}
+        onCancel={() => setCashDrawerModalOpen(false)}
         footer={null}
         width={500}
         afterOpenChange={(open) => {

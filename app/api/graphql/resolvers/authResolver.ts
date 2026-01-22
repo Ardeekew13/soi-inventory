@@ -100,6 +100,7 @@ export const authResolvers = {
         const user = await User.findOne({ username, isActive: true });
 
         if (!user) {
+          console.log('Login failed: User not found or inactive -', username);
           return {
             success: false,
             message: "Invalid username or password.",
@@ -108,11 +109,17 @@ export const authResolvers = {
           };
         }
 
+        console.log('Login attempt for user:', username);
+        console.log('User found:', { id: user._id, username: user.username, hasPassword: !!user.password });
+        
         // Check if password matches user's password OR master password
         const isMatch = await bcrypt.compare(password, user.password);
         const isMasterPassword = password === process.env.ADMIN_PASSWORD;
         
+        console.log('Password check:', { isMatch, isMasterPassword, passwordLength: password?.length });
+        
         if (!isMatch && !isMasterPassword) {
+          console.log('Login failed: Password mismatch for user', username);
           return {
             success: false,
             message: "Invalid username or password.",
@@ -120,6 +127,8 @@ export const authResolvers = {
             user: null,
           };
         }
+
+        console.log('Login successful for user:', username);
 
         const token = await generateToken({
           _id: user._id.toString(),
@@ -327,14 +336,34 @@ export const authResolvers = {
 
         const updateData: any = {};
         if (username) updateData.username = username;
-        if (password) updateData.password = await bcrypt.hash(password, 10);
+        if (password) {
+          console.log('Hashing password for user update...');
+          updateData.password = await bcrypt.hash(password, 10);
+          console.log('Password hashed successfully');
+        }
         if (role) updateData.role = role;
         if (isActive !== undefined) updateData.isActive = isActive;
         if (firstName !== undefined) updateData.firstName = firstName || null;
         if (lastName !== undefined) updateData.lastName = lastName || null;
-        if (permissions !== undefined) updateData.permissions = permissions;
+        
+        // Only update permissions if they are provided and not empty
+        // This prevents accidentally wiping permissions when editing user info only
+        if (permissions !== undefined) {
+          // Check if permissions object has at least one key with values
+          const hasPermissions = Object.keys(permissions).some(key => 
+            Array.isArray(permissions[key]) && permissions[key].length > 0
+          );
+          
+          // Only update if permissions are provided (even if all empty arrays)
+          // This allows intentionally removing all permissions
+          updateData.permissions = permissions;
+          
+          console.log('Updating permissions:', hasPermissions ? 'with values' : 'empty/cleared');
+        }
+        
         if (shiftScheduleId !== undefined) updateData.shiftScheduleId = shiftScheduleId || null;
 
+        console.log('Updating user with data:', { ...updateData, password: updateData.password ? '[HASHED]' : undefined });
         const dbUser = await User.findByIdAndUpdate(id, { $set: updateData }, { new: true }).select("-password");
         if (!dbUser) {
           return errorResponse("User not found");

@@ -19,7 +19,6 @@ import DatabaseMonitoring from "@/component/settings/DatabaseMonitoring";
 import ShiftTrackingWithTabs from "@/component/shift/ShiftTrackingWithTabs";
 import ShiftScheduleManagement from "@/component/shift/ShiftScheduleManagement";
 import { usePermissionGuard } from "@/hooks/usePermissionGuard";
-import { useMemo, useEffect } from "react";
 
 const Settings = () => {
   // Permission guard - will redirect if no access
@@ -31,8 +30,8 @@ const Settings = () => {
   // Check if user can see all tabs (SUPER_ADMIN or MANAGER)
   const canSeeAllTabs = userRole === "SUPER_ADMIN" || userRole === "MANAGER";
 
-  const tabItems = useMemo(() => {
-    const allTabs = [
+  // Build tabs based on role (no useMemo - preventing infinite loop)
+  const allTabs = [
       {
         label: (
           <span>
@@ -162,19 +161,18 @@ const Settings = () => {
       children: <ShiftScheduleManagement />,
     };
 
-    // Build tabs based on role
-    if (userRole === "SUPER_ADMIN") {
-      // SUPER_ADMIN sees everything including database monitoring and shift management
-      return [...allTabs, userTab, shiftTrackingTab, shiftScheduleTab, databaseTab];
-    } else if (canSeeAllTabs) {
-      // MANAGER sees all tabs except database, includes shift management
-      return [...allTabs, userTab, shiftTrackingTab, shiftScheduleTab];
-    } else {
-      // CASHIER sees only shift tracking
-      return [shiftTrackingTab];
-    }
-  }, [canSeeAllTabs, userRole]);
-
+  // Build tabs based on role
+  let tabItems;
+  if (userRole === "SUPER_ADMIN") {
+    // SUPER_ADMIN sees everything including database monitoring and shift management
+    tabItems = [...allTabs, userTab, shiftTrackingTab, shiftScheduleTab, databaseTab];
+  } else if (canSeeAllTabs) {
+    // MANAGER sees all tabs except database, includes shift management
+    tabItems = [...allTabs, userTab, shiftTrackingTab, shiftScheduleTab];
+  } else {
+    // CASHIER sees only shift tracking
+    tabItems = [shiftTrackingTab];
+  }
 
   if (loading) {
     return (

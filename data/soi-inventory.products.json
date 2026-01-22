@@ -1,0 +1,926 @@
+[{
+  "_id": {
+    "$oid": "690c9473efded1dab53c3381"
+  },
+  "name": "Pork Sisig",
+  "price": 290,
+  "isActive": true,
+  "createdAt": {
+    "$date": "2026-01-21T14:31:17.984Z"
+  },
+  "updatedAt": {
+    "$date": "2026-01-21T14:47:38.116Z"
+  },
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "690c9529e75566b8911226ca"
+  },
+  "name": "Fried Chicken",
+  "price": 350,
+  "isActive": true,
+  "createdAt": {
+    "$date": "2026-01-21T14:31:17.984Z"
+  },
+  "updatedAt": {
+    "$date": "2026-01-21T14:31:17.984Z"
+  },
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "6970dea6388c74eb185b1101"
+  },
+  "name": "Classic Burger",
+  "price": 150,
+  "category": "Main Course",
+  "description": "Juicy beef burger with fresh vegetables",
+  "isActive": true,
+  "ingredients": [
+    {
+      "itemName": "Ground Beef",
+      "quantity": 0.2
+    },
+    {
+      "itemName": "Lettuce",
+      "quantity": 0.05
+    },
+    {
+      "itemName": "Tomatoes",
+      "quantity": 0.05
+    },
+    {
+      "itemName": "Onions",
+      "quantity": 0.03
+    },
+    {
+      "itemName": "Cheese (Cheddar)",
+      "quantity": 0.05
+    },
+    {
+      "itemName": "Mayonnaise",
+      "quantity": 0.02
+    },
+    {
+      "itemName": "Ketchup",
+      "quantity": 0.02
+    }
+  ],
+  "createdAt": {
+    "$date": "2026-01-21T14:31:17.984Z"
+  },
+  "updatedAt": {
+    "$date": "2026-01-21T14:31:17.984Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "6970dea6388c74eb185b1102"
+  },
+  "name": "Margherita Pizza",
+  "price": 280,
+  "category": "Main Course",
+  "description": "Classic pizza with mozzarella and basil",
+  "isActive": true,
+  "ingredients": [
+    {
+      "itemName": "Bread Flour",
+      "quantity": 0.25
+    },
+    {
+      "itemName": "Mozzarella Cheese",
+      "quantity": 0.15
+    },
+    {
+      "itemName": "Tomatoes",
+      "quantity": 0.1
+    },
+    {
+      "itemName": "Olive Oil",
+      "quantity": 0.02
+    },
+    {
+      "itemName": "Basil (Dried)",
+      "quantity": 0.005
+    },
+    {
+      "itemName": "Salt",
+      "quantity": 0.005
+    },
+    {
+      "itemName": "Yeast",
+      "quantity": 0.01
+    }
+  ],
+  "createdAt": {
+    "$date": "2026-01-21T14:31:17.984Z"
+  },
+  "updatedAt": {
+    "$date": "2026-01-21T14:31:17.984Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "6970dea6388c74eb185b1103"
+  },
+  "name": "Spaghetti Carbonara",
+  "price": 180,
+  "category": "Main Course",
+  "description": "Creamy pasta with bacon and cheese",
+  "isActive": true,
+  "ingredients": [
+    {
+      "itemName": "Pasta (Spaghetti)",
+      "quantity": 0.2
+    },
+    {
+      "itemName": "Bacon",
+      "quantity": 0.1
+    },
+    {
+      "itemName": "Eggs",
+      "quantity": 0.17
+    },
+    {
+      "itemName": "Cheese (Cheddar)",
+      "quantity": 0.05
+    },
+    {
+      "itemName": "Fresh Cream",
+      "quantity": 0.1
+    },
+    {
+      "itemName": "Garlic",
+      "quantity": 0.01
+    },
+    {
+      "itemName": "Black Pepper",
+      "quantity": 0.002
+    }
+  ],
+  "createdAt": {
+    "$date": "2026-01-21T14:31:17.984Z"
+  },
+  "updatedAt": {
+    "$date": "2026-01-21T14:31:17.984Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "6970dea6388c74eb185b1104"
+  },
+  "name": "Grilled Chicken Breast",
+  "price": 220,
+  "category": "Main Course",
+  "description": "Tender grilled chicken with herbs",
+  "isActive": true,
+  "ingredients": [
+    {
+      "itemName": "Chicken Breast",
+      "quantity": 0.25
+    },
+    {
+      "itemName": "Olive Oil",
+      "quantity": 0.02
+    },
+    {
+      "itemName": "Garlic",
+      "quantity": 0.01
+    },
+    {
+      "itemName": "Oregano",
+      "quantity": 0.003
+    },
+    {
+      "itemName": "Thyme",
+      "quantity": 0.003
+    },
+    {
+      "itemName": "Salt",
+      "quantity": 0.005
+    },
+    {
+      "itemName": "Black Pepper",
+      "quantity": 0.002
+    }
+  ],
+  "createdAt": {
+    "$date": "2026-01-21T14:31:17.984Z"
+  },
+  "updatedAt": {
+    "$date": "2026-01-21T14:31:17.984Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "6970dea6388c74eb185b1105"
+  },
+  "name": "Fish and Chips",
+  "price": 250,
+  "category": "Main Course",
+  "description": "Crispy fried fish with french fries",
+  "isActive": true,
+  "ingredients": [
+    {
+      "itemName": "Fish Fillet (Tilapia)",
+      "quantity": 0.25
+    },
+    {
+      "itemName": "Potatoes",
+      "quantity": 0.3
+    },
+    {
+      "itemName": "All-Purpose Flour",
+      "quantity": 0.05
+    },
+    {
+      "itemName": "Eggs",
+      "quantity": 0.08
+    },
+    {
+      "itemName": "Cooking Oil",
+      "quantity": 0.1
+    },
+    {
+      "itemName": "Salt",
+      "quantity": 0.005
+    },
+    {
+      "itemName": "Black Pepper",
+      "quantity": 0.002
+    }
+  ],
+  "createdAt": {
+    "$date": "2026-01-21T14:31:17.984Z"
+  },
+  "updatedAt": {
+    "$date": "2026-01-21T14:31:17.984Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "6970dea6388c74eb185b1106"
+  },
+  "name": "Beef Tacos",
+  "price": 160,
+  "category": "Main Course",
+  "description": "Mexican tacos with seasoned beef",
+  "isActive": true,
+  "ingredients": [
+    {
+      "itemName": "Ground Beef",
+      "quantity": 0.15
+    },
+    {
+      "itemName": "Tomatoes",
+      "quantity": 0.05
+    },
+    {
+      "itemName": "Lettuce",
+      "quantity": 0.03
+    },
+    {
+      "itemName": "Onions",
+      "quantity": 0.03
+    },
+    {
+      "itemName": "Cheese (Cheddar)",
+      "quantity": 0.04
+    },
+    {
+      "itemName": "Cumin",
+      "quantity": 0.002
+    },
+    {
+      "itemName": "Paprika",
+      "quantity": 0.002
+    }
+  ],
+  "createdAt": {
+    "$date": "2026-01-21T14:31:17.984Z"
+  },
+  "updatedAt": {
+    "$date": "2026-01-21T14:31:17.984Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "6970dea6388c74eb185b1107"
+  },
+  "name": "Caesar Salad",
+  "price": 120,
+  "category": "Appetizer",
+  "description": "Fresh romaine with caesar dressing",
+  "isActive": true,
+  "ingredients": [
+    {
+      "itemName": "Lettuce",
+      "quantity": 0.15
+    },
+    {
+      "itemName": "Chicken Breast",
+      "quantity": 0.1
+    },
+    {
+      "itemName": "Cheese (Cheddar)",
+      "quantity": 0.03
+    },
+    {
+      "itemName": "Mayonnaise",
+      "quantity": 0.03
+    },
+    {
+      "itemName": "Garlic",
+      "quantity": 0.005
+    },
+    {
+      "itemName": "Black Pepper",
+      "quantity": 0.001
+    }
+  ],
+  "createdAt": {
+    "$date": "2026-01-21T14:31:17.984Z"
+  },
+  "updatedAt": {
+    "$date": "2026-01-21T14:31:17.984Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "6970dea6388c74eb185b1108"
+  },
+  "name": "Garlic Shrimp",
+  "price": 320,
+  "category": "Appetizer",
+  "description": "Sautéed shrimp in garlic butter",
+  "isActive": true,
+  "ingredients": [
+    {
+      "itemName": "Shrimp",
+      "quantity": 0.2
+    },
+    {
+      "itemName": "Butter",
+      "quantity": 0.05
+    },
+    {
+      "itemName": "Garlic",
+      "quantity": 0.02
+    },
+    {
+      "itemName": "Olive Oil",
+      "quantity": 0.02
+    },
+    {
+      "itemName": "Salt",
+      "quantity": 0.003
+    },
+    {
+      "itemName": "Black Pepper",
+      "quantity": 0.002
+    }
+  ],
+  "createdAt": {
+    "$date": "2026-01-21T14:31:17.984Z"
+  },
+  "updatedAt": {
+    "$date": "2026-01-21T14:31:17.984Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "6970dea6388c74eb185b1109"
+  },
+  "name": "French Fries",
+  "price": 80,
+  "category": "Side Dish",
+  "description": "Crispy golden french fries",
+  "isActive": true,
+  "ingredients": [
+    {
+      "itemName": "Potatoes",
+      "quantity": 0.25
+    },
+    {
+      "itemName": "Cooking Oil",
+      "quantity": 0.08
+    },
+    {
+      "itemName": "Salt",
+      "quantity": 0.005
+    }
+  ],
+  "createdAt": {
+    "$date": "2026-01-21T14:31:17.984Z"
+  },
+  "updatedAt": {
+    "$date": "2026-01-21T14:31:17.984Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "6970dea6388c74eb185b110a"
+  },
+  "name": "Onion Rings",
+  "price": 90,
+  "category": "Side Dish",
+  "description": "Crispy battered onion rings",
+  "isActive": true,
+  "ingredients": [
+    {
+      "itemName": "Onions",
+      "quantity": 0.15
+    },
+    {
+      "itemName": "All-Purpose Flour",
+      "quantity": 0.08
+    },
+    {
+      "itemName": "Eggs",
+      "quantity": 0.08
+    },
+    {
+      "itemName": "Cooking Oil",
+      "quantity": 0.1
+    },
+    {
+      "itemName": "Salt",
+      "quantity": 0.003
+    },
+    {
+      "itemName": "Paprika",
+      "quantity": 0.002
+    }
+  ],
+  "createdAt": {
+    "$date": "2026-01-21T14:31:17.984Z"
+  },
+  "updatedAt": {
+    "$date": "2026-01-21T14:31:17.984Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "6970dea6388c74eb185b110b"
+  },
+  "name": "Garlic Bread",
+  "price": 70,
+  "category": "Side Dish",
+  "description": "Toasted bread with garlic butter",
+  "isActive": true,
+  "ingredients": [
+    {
+      "itemName": "Bread Flour",
+      "quantity": 0.1
+    },
+    {
+      "itemName": "Butter",
+      "quantity": 0.05
+    },
+    {
+      "itemName": "Garlic",
+      "quantity": 0.015
+    },
+    {
+      "itemName": "Salt",
+      "quantity": 0.002
+    },
+    {
+      "itemName": "Oregano",
+      "quantity": 0.002
+    }
+  ],
+  "createdAt": {
+    "$date": "2026-01-21T14:31:17.984Z"
+  },
+  "updatedAt": {
+    "$date": "2026-01-21T14:31:17.984Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "6970dea6388c74eb185b110c"
+  },
+  "name": "Fried Rice",
+  "price": 100,
+  "category": "Main Course",
+  "description": "Classic fried rice with vegetables",
+  "isActive": true,
+  "ingredients": [
+    {
+      "itemName": "Rice",
+      "quantity": 0.2
+    },
+    {
+      "itemName": "Eggs",
+      "quantity": 0.08
+    },
+    {
+      "itemName": "Carrots",
+      "quantity": 0.05
+    },
+    {
+      "itemName": "Onions",
+      "quantity": 0.03
+    },
+    {
+      "itemName": "Garlic",
+      "quantity": 0.01
+    },
+    {
+      "itemName": "Soy Sauce",
+      "quantity": 0.02
+    },
+    {
+      "itemName": "Cooking Oil",
+      "quantity": 0.03
+    }
+  ],
+  "createdAt": {
+    "$date": "2026-01-21T14:31:17.984Z"
+  },
+  "updatedAt": {
+    "$date": "2026-01-21T14:31:17.984Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "6970dea6388c74eb185b110d"
+  },
+  "name": "Pork Chop with Gravy",
+  "price": 200,
+  "category": "Main Course",
+  "description": "Juicy pork chop with savory gravy",
+  "isActive": true,
+  "ingredients": [
+    {
+      "itemName": "Pork Chops",
+      "quantity": 0.25
+    },
+    {
+      "itemName": "All-Purpose Flour",
+      "quantity": 0.03
+    },
+    {
+      "itemName": "Butter",
+      "quantity": 0.03
+    },
+    {
+      "itemName": "Whole Milk",
+      "quantity": 0.1
+    },
+    {
+      "itemName": "Garlic",
+      "quantity": 0.01
+    },
+    {
+      "itemName": "Salt",
+      "quantity": 0.005
+    },
+    {
+      "itemName": "Black Pepper",
+      "quantity": 0.002
+    }
+  ],
+  "createdAt": {
+    "$date": "2026-01-21T14:31:17.984Z"
+  },
+  "updatedAt": {
+    "$date": "2026-01-21T14:31:17.984Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "6970dea6388c74eb185b110e"
+  },
+  "name": "Pancakes",
+  "price": 95,
+  "category": "Breakfast",
+  "description": "Fluffy pancakes with syrup",
+  "isActive": true,
+  "ingredients": [
+    {
+      "itemName": "All-Purpose Flour",
+      "quantity": 0.15
+    },
+    {
+      "itemName": "Eggs",
+      "quantity": 0.08
+    },
+    {
+      "itemName": "Whole Milk",
+      "quantity": 0.1
+    },
+    {
+      "itemName": "White Sugar",
+      "quantity": 0.02
+    },
+    {
+      "itemName": "Baking Powder",
+      "quantity": 0.01
+    },
+    {
+      "itemName": "Butter",
+      "quantity": 0.02
+    },
+    {
+      "itemName": "Salt",
+      "quantity": 0.002
+    }
+  ],
+  "createdAt": {
+    "$date": "2026-01-21T14:31:17.984Z"
+  },
+  "updatedAt": {
+    "$date": "2026-01-21T14:31:17.984Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "6970dea6388c74eb185b110f"
+  },
+  "name": "Chocolate Cake",
+  "price": 150,
+  "category": "Dessert",
+  "description": "Rich chocolate cake slice",
+  "isActive": true,
+  "ingredients": [
+    {
+      "itemName": "All-Purpose Flour",
+      "quantity": 0.12
+    },
+    {
+      "itemName": "White Sugar",
+      "quantity": 0.1
+    },
+    {
+      "itemName": "Cocoa Powder",
+      "quantity": 0.03
+    },
+    {
+      "itemName": "Eggs",
+      "quantity": 0.08
+    },
+    {
+      "itemName": "Butter",
+      "quantity": 0.05
+    },
+    {
+      "itemName": "Whole Milk",
+      "quantity": 0.08
+    },
+    {
+      "itemName": "Baking Powder",
+      "quantity": 0.008
+    },
+    {
+      "itemName": "Vanilla Extract",
+      "quantity": 0.005
+    }
+  ],
+  "createdAt": {
+    "$date": "2026-01-21T14:31:17.984Z"
+  },
+  "updatedAt": {
+    "$date": "2026-01-21T14:31:17.984Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "6970dea6388c74eb185b1110"
+  },
+  "name": "Chicken Soup",
+  "price": 110,
+  "category": "Soup",
+  "description": "Hearty chicken soup with vegetables",
+  "isActive": true,
+  "ingredients": [
+    {
+      "itemName": "Chicken Thighs",
+      "quantity": 0.15
+    },
+    {
+      "itemName": "Carrots",
+      "quantity": 0.08
+    },
+    {
+      "itemName": "Onions",
+      "quantity": 0.05
+    },
+    {
+      "itemName": "Garlic",
+      "quantity": 0.01
+    },
+    {
+      "itemName": "Cabbage",
+      "quantity": 0.08
+    },
+    {
+      "itemName": "Salt",
+      "quantity": 0.005
+    },
+    {
+      "itemName": "Black Pepper",
+      "quantity": 0.002
+    },
+    {
+      "itemName": "Bay Leaves",
+      "quantity": 0.001
+    }
+  ],
+  "createdAt": {
+    "$date": "2026-01-21T14:31:17.984Z"
+  },
+  "updatedAt": {
+    "$date": "2026-01-21T14:31:17.984Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "6970dea6388c74eb185b1111"
+  },
+  "name": "Beef Stew",
+  "price": 180,
+  "category": "Main Course",
+  "description": "Tender beef in rich gravy",
+  "isActive": true,
+  "ingredients": [
+    {
+      "itemName": "Ground Beef",
+      "quantity": 0.2
+    },
+    {
+      "itemName": "Potatoes",
+      "quantity": 0.15
+    },
+    {
+      "itemName": "Carrots",
+      "quantity": 0.1
+    },
+    {
+      "itemName": "Onions",
+      "quantity": 0.05
+    },
+    {
+      "itemName": "Tomatoes",
+      "quantity": 0.08
+    },
+    {
+      "itemName": "Garlic",
+      "quantity": 0.01
+    },
+    {
+      "itemName": "Bay Leaves",
+      "quantity": 0.002
+    },
+    {
+      "itemName": "Salt",
+      "quantity": 0.005
+    },
+    {
+      "itemName": "Black Pepper",
+      "quantity": 0.002
+    }
+  ],
+  "createdAt": {
+    "$date": "2026-01-21T14:31:17.984Z"
+  },
+  "updatedAt": {
+    "$date": "2026-01-21T14:31:17.984Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "6970dea6388c74eb185b1112"
+  },
+  "name": "Sausage Breakfast Platter",
+  "price": 140,
+  "category": "Breakfast",
+  "description": "Sausages with eggs and toast",
+  "isActive": true,
+  "ingredients": [
+    {
+      "itemName": "Sausages",
+      "quantity": 0.15
+    },
+    {
+      "itemName": "Eggs",
+      "quantity": 0.17
+    },
+    {
+      "itemName": "Bread Flour",
+      "quantity": 0.08
+    },
+    {
+      "itemName": "Butter",
+      "quantity": 0.02
+    },
+    {
+      "itemName": "Salt",
+      "quantity": 0.002
+    },
+    {
+      "itemName": "Black Pepper",
+      "quantity": 0.001
+    }
+  ],
+  "createdAt": {
+    "$date": "2026-01-21T14:31:17.984Z"
+  },
+  "updatedAt": {
+    "$date": "2026-01-21T14:31:17.984Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "6970dea6388c74eb185b1113"
+  },
+  "name": "Vegetable Stir Fry",
+  "price": 130,
+  "category": "Main Course",
+  "description": "Mixed vegetables in savory sauce",
+  "isActive": true,
+  "ingredients": [
+    {
+      "itemName": "Cabbage",
+      "quantity": 0.1
+    },
+    {
+      "itemName": "Carrots",
+      "quantity": 0.08
+    },
+    {
+      "itemName": "Bell Peppers",
+      "quantity": 0.08
+    },
+    {
+      "itemName": "Onions",
+      "quantity": 0.05
+    },
+    {
+      "itemName": "Garlic",
+      "quantity": 0.01
+    },
+    {
+      "itemName": "Soy Sauce",
+      "quantity": 0.03
+    },
+    {
+      "itemName": "Cooking Oil",
+      "quantity": 0.03
+    }
+  ],
+  "createdAt": {
+    "$date": "2026-01-21T14:31:17.984Z"
+  },
+  "updatedAt": {
+    "$date": "2026-01-21T14:31:17.984Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "6970dea6388c74eb185b1114"
+  },
+  "name": "Brownies",
+  "price": 80,
+  "category": "Dessert",
+  "description": "Fudgy chocolate brownies",
+  "isActive": true,
+  "ingredients": [
+    {
+      "itemName": "All-Purpose Flour",
+      "quantity": 0.1
+    },
+    {
+      "itemName": "Cocoa Powder",
+      "quantity": 0.04
+    },
+    {
+      "itemName": "White Sugar",
+      "quantity": 0.12
+    },
+    {
+      "itemName": "Eggs",
+      "quantity": 0.08
+    },
+    {
+      "itemName": "Butter",
+      "quantity": 0.08
+    },
+    {
+      "itemName": "Vanilla Extract",
+      "quantity": 0.003
+    },
+    {
+      "itemName": "Baking Powder",
+      "quantity": 0.003
+    }
+  ],
+  "createdAt": {
+    "$date": "2026-01-21T14:31:17.984Z"
+  },
+  "updatedAt": {
+    "$date": "2026-01-21T14:31:17.984Z"
+  }
+}]

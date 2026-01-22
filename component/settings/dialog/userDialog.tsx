@@ -1,5 +1,5 @@
 "use client";
-import { Modal, Form, Input, Select, Switch, App, Tabs, Checkbox, Divider, Collapse, Row, Col, Typography } from "antd";
+import { Modal, Form, Input, Select, Switch, App, Tabs, Checkbox, Row, Col, Typography } from "antd";
 import { useMutation, useApolloClient, useQuery } from "@apollo/client";
 import {
   CREATE_USER_MUTATION,
@@ -43,10 +43,22 @@ const UserDialog = ({ open, onClose, onSuccess, user, currentUserId, canManagePe
 
   const loading = createLoading || updateLoading;
 
+  // Helper to ensure all permission modules are present in the permissions object
+  const normalizePermissions = (permissions: any) => {
+    const normalized: Record<string, string[]> = {};
+    PERMISSION_MODULES.forEach(module => {
+      normalized[module.key] = permissions?.[module.key] || [];
+    });
+    return normalized;
+  };
+
   useEffect(() => {
     if (user && open) {
       // Populate form with existing user data for edit mode
-      const permissions = user.role === 'SUPER_ADMIN' ? getFullPermissions() : (user.permissions || {});
+      const permissions = user.role === 'SUPER_ADMIN' 
+        ? getFullPermissions() 
+        : normalizePermissions(user.permissions);
+      
       form.setFieldsValue({
         username: user.username,
         role: user.role,
@@ -57,8 +69,12 @@ const UserDialog = ({ open, onClose, onSuccess, user, currentUserId, canManagePe
         shiftScheduleId: user.shiftScheduleId || null,
       });
     } else if (open) {
-      // Reset form for add mode - set default shift schedule
+      // Reset form for add mode
       form.resetFields();
+      // Initialize all permission modules with empty arrays
+      form.setFieldsValue({
+        permissions: normalizePermissions({}),
+      });
       // Set default schedule if available
       if (defaultScheduleId) {
         form.setFieldsValue({
@@ -82,6 +98,7 @@ const UserDialog = ({ open, onClose, onSuccess, user, currentUserId, canManagePe
   const handleSubmit = async () => {
     try {
       const values = await form.validateFields();
+      console.log("Form Values:", values);  
       if (isEditMode) {
         // Update existing user
         const variables: any = {
@@ -262,52 +279,52 @@ const UserDialog = ({ open, onClose, onSuccess, user, currentUserId, canManagePe
                       <strong>SUPER_ADMIN has full access to all modules and actions.</strong>
                     </Typography.Text>
                   )}
-                  <Collapse
-                    accordion
-                    bordered={false}
-                    style={{ background: 'transparent' }}
-                    expandIconPosition="end"
-                    items={PERMISSION_MODULES.map((mod) => ({
-                      key: mod.key,
-                      label: (
-                        <div>
-                          <Typography.Text strong>{mod.label}</Typography.Text>
-                        </div>
-                      ),
-                      style: { background: '#fafafa', borderRadius: 8, marginBottom: 8 },
-                      children: (
-                        <div>
-                          <Form.Item
-                            name={['permissions', mod.key]}
-                            style={{ marginBottom: 0 }}
-                            valuePropName="value"
+                  
+                  <div style={{ maxHeight: '400px', overflowY: 'auto', paddingRight: '8px' }}>
+                    {PERMISSION_MODULES.map((mod) => (
+                      <div
+                        key={mod.key}
+                        style={{
+                          background: '#fafafa',
+                          borderRadius: 8,
+                          marginBottom: 16,
+                          padding: '12px 16px',
+                          border: '1px solid #f0f0f0'
+                        }}
+                      >
+                        <Typography.Text strong style={{ display: 'block', marginBottom: 12, fontSize: 14 }}>
+                          {mod.label}
+                        </Typography.Text>
+                        <Form.Item
+                          name={['permissions', mod.key]}
+                          style={{ marginBottom: 0 }}
+                          valuePropName="value"
+                        >
+                          <Checkbox.Group
+                            style={{ width: '100%' }}
+                            disabled={form.getFieldValue('role') === 'SUPER_ADMIN'}
                           >
-                            <Checkbox.Group
-                              style={{ width: '100%' }}
-                              disabled={form.getFieldValue('role') === 'SUPER_ADMIN'}
-                            >
-                              <Row gutter={[8, 12]}>
-                                {mod.actions.map((action) => (
-                                  <Col xs={24} sm={12} md={12} lg={12} key={action.key}>
-                                    <Checkbox value={action.key}>
-                                      <div>
-                                        <div>{action.label}</div>
-                                        {action.description && (
-                                          <Typography.Text type="secondary" style={{ fontSize: 11 }}>
-                                            {action.description}
-                                          </Typography.Text>
-                                        )}
-                                      </div>
-                                    </Checkbox>
-                                  </Col>
-                                ))}
-                              </Row>
-                            </Checkbox.Group>
-                          </Form.Item>
-                        </div>
-                      ),
-                    }))}
-                  />
+                            <Row gutter={[8, 12]}>
+                              {mod.actions.map((action) => (
+                                <Col xs={24} sm={12} md={12} lg={12} key={action.key}>
+                                  <Checkbox value={action.key}>
+                                    <div>
+                                      <div>{action.label}</div>
+                                      {action.description && (
+                                        <Typography.Text type="secondary" style={{ fontSize: 11 }}>
+                                          {action.description}
+                                        </Typography.Text>
+                                      )}
+                                    </div>
+                                  </Checkbox>
+                                </Col>
+                              ))}
+                            </Row>
+                          </Checkbox.Group>
+                        </Form.Item>
+                      </div>
+                    ))}
+                  </div>
                 </>
               ),
             }] : []),

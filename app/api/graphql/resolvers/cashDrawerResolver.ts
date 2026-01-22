@@ -120,7 +120,7 @@ export const cashDrawerResolvers = {
       }
     },
 
-    closeCashDrawer: async (_: unknown, { closingBalance }: { closingBalance: number }, context: any) => {
+    closeCashDrawer: async (_: unknown, { closingBalance, drawerId }: { closingBalance: number; drawerId?: string }, context: any) => {
       // Check authentication
       if (!context.user) {
         return errorResponse("Authentication required");
@@ -134,11 +134,30 @@ export const cashDrawerResolvers = {
         return errorResponse("Insufficient permissions to close cash drawer");
       }
 
+      const isAdmin = userRole === 'SUPER_ADMIN';
+
       try {
-        const drawer = await CashDrawer.findOne({ status: "OPEN" }).sort({ openedAt: -1 });
+        let drawer;
         
-        if (!drawer) {
-          return errorResponse("No open cash drawer found");
+        // If admin provides drawerId, they can close any drawer
+        if (isAdmin && drawerId) {
+          drawer = await CashDrawer.findOne({ _id: drawerId, status: "OPEN" });
+          if (!drawer) {
+            return errorResponse("Cash drawer not found or already closed");
+          }
+        } else {
+          // Regular users can only close their own open drawer (most recent)
+          // Admins without drawerId also get the most recent open drawer
+          drawer = await CashDrawer.findOne({ status: "OPEN" }).sort({ openedAt: -1 });
+          
+          if (!drawer) {
+            return errorResponse("No open cash drawer found");
+          }
+          
+          // Regular users can only close their own drawer
+          if (!isAdmin && drawer.openedByUserId?.toString() !== context.user.id) {
+            return errorResponse("You can only close your own cash drawer");
+          }
         }
 
         // Get user info for closing

@@ -79,7 +79,7 @@ export const cashDrawerTypeDefs = gql`
 
   extend type Mutation {
     openCashDrawer(openingBalance: Float!): CashDrawerResponse!
-    closeCashDrawer(closingBalance: Float!): CashDrawerResponse!
+    closeCashDrawer(closingBalance: Float!, drawerId: ID): CashDrawerResponse!
     addCashIn(amount: Float!, description: String!): CashDrawerResponse!
     addCashOut(amount: Float!, description: String!): CashDrawerResponse!
   }

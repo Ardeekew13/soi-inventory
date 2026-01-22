@@ -43,12 +43,12 @@ import { exportCashDrawerToExcel, exportCashDrawerHistoryToExcel } from "@/utils
 
 const CashDrawerPage = () => {
   // Permission guard - will redirect if no access
-  const { loading: permissionLoading, userPermissions } = usePermissionGuard({
+  const { loading: permissionLoading, userPermissions, userRole } = usePermissionGuard({
     module: "cashDrawer",
     action: "view",
   });
 
-  const [messageApi, contextHolder] = message.useMessage();
+  const isAdmin = userRole === "SUPER_ADMIN";  const [messageApi, contextHolder] = message.useMessage();
 
   const [openingBalance, setOpeningBalance] = useState<number>(0);
   const [closingBalance, setClosingBalance] = useState<number>(0);
@@ -60,6 +60,9 @@ const CashDrawerPage = () => {
   const [showCashInModal, setShowCashInModal] = useState(false);
   const [showCashOutModal, setShowCashOutModal] = useState(false);
   const [showCloseModal, setShowCloseModal] = useState(false);
+  const [showAdminCloseModal, setShowAdminCloseModal] = useState(false);
+  const [selectedDrawerId, setSelectedDrawerId] = useState<string | null>(null);
+  const [adminClosingBalance, setAdminClosingBalance] = useState<number>(0);
 
   const { data, loading, refetch } = useQuery(GET_CURRENT_CASH_DRAWER, {
     skip: permissionLoading,
@@ -152,6 +155,33 @@ const CashDrawerPage = () => {
     closeDrawer({ variables: { closingBalance } });
   };
 
+  const handleAdminCloseDrawer = () => {
+    if (adminClosingBalance < 0) {
+      messageApi.error("Closing balance cannot be negative");
+      return;
+    }
+    if (!selectedDrawerId) {
+      messageApi.error("No drawer selected");
+      return;
+    }
+    closeDrawer({ 
+      variables: { 
+        closingBalance: adminClosingBalance, 
+        drawerId: selectedDrawerId 
+      } 
+    }).then(() => {
+      setShowAdminCloseModal(false);
+      setSelectedDrawerId(null);
+      setAdminClosingBalance(0);
+    });
+  };
+
+  const openAdminCloseModal = (drawer: any) => {
+    setSelectedDrawerId(drawer._id);
+    setAdminClosingBalance(drawer.expectedBalance || 0);
+    setShowAdminCloseModal(true);
+  };
+
   const handleAddCashIn = () => {
     if (cashInAmount <= 0) {
       messageApi.error("Amount must be greater than 0");
@@ -213,7 +243,7 @@ const CashDrawerPage = () => {
     }
   };
 
-  const historyColumns = [
+  const historyColumns: any[] = [
     {
       title: "Opened At",
       dataIndex: "openedAt",
@@ -232,6 +262,12 @@ const CashDrawerPage = () => {
       title: "Opened By",
       dataIndex: "openedBy",
       key: "openedBy",
+    },
+    {
+      title: "Closed By",
+      dataIndex: "closedBy",
+      key: "closedBy",
+      render: (closedBy: string) => closedBy || "-",
     },
     {
       title: "Opening",
@@ -294,6 +330,30 @@ const CashDrawerPage = () => {
       },
     },
   ];
+
+  // Add actions column for admins
+  if (isAdmin) {
+    historyColumns.push({
+      title: "Actions",
+      key: "actions",
+      render: (_: any, record: any) => {
+        if (record.status === "OPEN") {
+          return (
+            <Button
+              type="primary"
+              danger
+              size="small"
+              icon={<CloseCircleOutlined />}
+              onClick={() => openAdminCloseModal(record)}
+            >
+              Close Drawer
+            </Button>
+          );
+        }
+        return null;
+      },
+    });
+  }
  
   return (
     <div style={{ padding: 20 }}>
@@ -758,6 +818,45 @@ const CashDrawerPage = () => {
           )}
         </Space>
       </Modal>
+
+      {/* Admin Close Drawer Modal */}
+      {isAdmin && (
+        <Modal
+          title="Admin: Close Cash Drawer"
+          open={showAdminCloseModal}
+          onCancel={() => {
+            setShowAdminCloseModal(false);
+            setSelectedDrawerId(null);
+            setAdminClosingBalance(0);
+          }}
+          onOk={handleAdminCloseDrawer}
+          confirmLoading={closeLoading}
+        >
+          <Alert
+            message="Admin Override"
+            description="You are closing another user's cash drawer. This action will be recorded in the paper trail."
+            type="warning"
+            showIcon
+            style={{ marginBottom: 16 }}
+          />
+          <Space direction="vertical" style={{ width: "100%" }}>
+            <div>
+              <Typography.Text strong>Actual Closing Balance:</Typography.Text>
+              <InputNumber
+                size="large"
+                style={{ width: "100%", marginTop: 8 }}
+                value={adminClosingBalance}
+                onChange={(value) => setAdminClosingBalance(value || 0)}
+                min={0}
+                formatter={(value) =>
+                  `₱ ${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ",")
+                }
+                parser={(value) => Number(value?.replace(/\₱\s?|(,*)/g, ""))}
+              />
+            </div>
+          </Space>
+        </Modal>
+      )}
     </div>
   );
 };

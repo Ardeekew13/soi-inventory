@@ -132,26 +132,28 @@ const TransactionListTable = (props: IProps) => {
 					});
 				}
 
-				// Refund (only for COMPLETED sales)
-				if (isCompleted && !isVoided && userPermissions?.transaction?.includes('refund')) {
-					menuItems.push({
-						key: 'refund',
-						icon: <DollarOutlined />,
-						label: 'Refund',
-						danger: true,
-						onClick: () => openModalVoid(record),
-					});
-				}
-
-				// Void (for non-completed or non-voided sales)
-				if (!isVoided && userPermissions?.transaction?.includes('void')) {
-					menuItems.push({
-						key: 'void',
-						icon: <UndoOutlined />,
-						label: 'Void',
-						danger: true,
-						onClick: () => openModalVoid(record),
-					});
+				// Refund or Void (combined action)
+				if (!isVoided) {
+					// For COMPLETED sales, show Refund if permission exists
+					if (isCompleted && userPermissions?.transaction?.includes('refund')) {
+						menuItems.push({
+							key: 'refund',
+							icon: <DollarOutlined />,
+							label: 'Refund or Void',
+							danger: true,
+							onClick: () => openModalVoid(record),
+						});
+					} 
+					// For non-completed sales or if no refund permission, show Void if permission exists
+					else if (userPermissions?.transaction?.includes('void')) {
+						menuItems.push({
+							key: 'void',
+							icon: <UndoOutlined />,
+							label: 'Void Transaction',
+							danger: true,
+							onClick: () => openModalVoid(record),
+						});
+					}
 				}
 
 				// If no actions available, don't show dropdown

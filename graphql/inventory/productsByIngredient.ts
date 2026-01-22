@@ -17,6 +17,8 @@ export const GET_PRODUCTS_BY_INGREDIENT = gql`
           id
           name
           unit
+					isActive
+					pricePerUnit
         }
       }
       createdAt

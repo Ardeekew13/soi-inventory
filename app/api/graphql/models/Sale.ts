@@ -81,6 +81,8 @@ saleSchema.index({ createdAt: -1 }); // For date range queries and sorting
 saleSchema.index({ isDeleted: 1 }); // For filtering deleted sales
 saleSchema.index({ orderType: 1 }); // For filtering by order type
 saleSchema.index({ createdAt: -1, status: 1 }); // Compound index for date + status queries
+saleSchema.index({ cashierId: 1 }); // For filtering sales by cashier (role-based)
+saleSchema.index({ cashierId: 1, status: 1 }); // Compound for cashier + status filtering
 
 // Enable virtuals in JSON
 saleSchema.set("toJSON", { virtuals: true });

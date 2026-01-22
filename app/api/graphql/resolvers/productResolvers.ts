@@ -165,25 +165,61 @@ export const productResolvers = {
         populate: {
           path: "itemId",
           model: "Item",
-          match: { isActive: true }, // Only populate active items
+          // Remove match filter to include both active and inactive items
+          // The frontend will handle displaying inactive items with indicators
         },
       });
 
       const formattedProducts = products.map((product) => {
         const productObj = product.toObject();
+        
+        // Filter and validate ingredients
+        const validIngredients = (productObj.ingredientsUsed || [])
+          .filter((ing: any) => {
+            // Must have valid ingredient with _id
+            if (!ing || !ing._id) {
+              console.log('Filtered out ingredient: no _id', ing);
+              return false;
+            }
+            // Check if itemId is populated and has an _id
+            // We include both active and inactive items here
+            if (!ing.itemId || !ing.itemId._id) {
+              console.log('Filtered out ingredient: no itemId._id', { ing: ing._id, itemId: ing.itemId });
+              return false;
+            }
+            return true;
+          })
+          .map((ing: any) => {
+            const itemData = {
+              ...ing.itemId,
+              id: ing.itemId._id.toString(),
+              _id: ing.itemId._id,
+            };
+            
+            console.log('Mapping ingredient:', {
+              ingredientId: ing._id.toString(),
+              itemName: ing.itemId.name,
+              itemIsActive: ing.itemId.isActive,
+              itemPricePerUnit: ing.itemId.pricePerUnit,
+              hasAllFields: !!(ing.itemId.name && ing.itemId.unit && ing.itemId.pricePerUnit !== undefined)
+            });
+            
+            return {
+              _id: ing._id,
+              id: ing._id.toString(),
+              productId: ing.productId,
+              itemId: ing.itemId._id || ing.itemId,
+              quantityUsed: ing.quantityUsed,
+              isActive: ing.isActive !== false,
+              item: itemData,
+            };
+          });
+        
         return {
           ...productObj,
           createdAt: new Date(product.createdAt).toISOString(),
           updatedAt: new Date(product.updatedAt).toISOString(),
-          ingredientsUsed: (productObj.ingredientsUsed || []).map(
-            (ing: any) => ({
-              _id: ing._id,
-              productId: ing.productId,
-              itemId: ing.itemId?._id || ing.itemId,
-              quantityUsed: ing.quantityUsed,
-              item: ing.itemId,
-            })
-          ),
+          ingredientsUsed: validIngredients,
         };
       });
 
@@ -198,20 +234,45 @@ export const productResolvers = {
         Array.isArray(parent.ingredientsUsed) &&
         parent.ingredientsUsed.length > 0
       ) {
-        return parent.ingredientsUsed;
+        // Filter out ingredients with null/invalid items
+        return parent.ingredientsUsed
+          .filter((ing: any) => {
+            if (!ing || !ing._id) return false;
+            // Check if itemId is populated with a valid Item object
+            if (!ing.itemId || !ing.itemId._id) return false;
+            return true;
+          })
+          .map((ing: any) => ({
+            ...ing,
+            id: ing._id?.toString() || ing.id,
+            _id: ing._id,
+          }));
       }
 
       const ingredients = await ProductIngredient.find({
         productId: parent._id,
       }).populate("itemId");
 
-      return ingredients.map((ing: any) => ({
-        _id: ing._id,
-        productId: ing.productId,
-        itemId: ing.itemId?._id || ing.itemId,
-        quantityUsed: ing.quantityUsed,
-        item: ing.itemId,
-      }));
+      return ingredients
+        .filter((ing: any) => {
+          if (!ing || !ing._id) return false;
+          // Ensure itemId is populated and has _id
+          if (!ing.itemId || !ing.itemId._id) return false;
+          return true;
+        })
+        .map((ing: any) => ({
+          _id: ing._id,
+          id: ing._id.toString(),
+          productId: ing.productId,
+          itemId: ing.itemId._id || ing.itemId,
+          quantityUsed: ing.quantityUsed,
+          isActive: ing.isActive !== false,
+          item: {
+            ...ing.itemId,
+            id: ing.itemId._id.toString(), // Explicitly add id field to item
+            _id: ing.itemId._id,
+          },
+        }));
     },
   },
   ProductIngredient: {

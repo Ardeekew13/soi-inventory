@@ -52,10 +52,17 @@ const ProductListTable = (props: IProps) => {
     null
   );
   const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
+  const [ingredientSearch, setIngredientSearch] = useState("");
+  const [itemsOptions, setItemsOptions] = useState<any[]>([]);
 
-  // Get all items for the dropdown
-  const { data: itemsData } = useQuery<Query>(GET_ITEMS, {
-    variables: { search: "", limit: 1000, skip: 0 },
+  // Use lazy query instead of loading 1000 items upfront
+  const [getItems, { loading: itemsLoading }] = useLazyQuery<Query>(GET_ITEMS, {
+    fetchPolicy: "network-only",
+    onCompleted: (data) => {
+      if (data?.itemsList?.items) {
+        setItemsOptions(data.itemsList.items);
+      }
+    },
   });
 
   // Lazy query for filtering by ingredient
@@ -75,6 +82,31 @@ const ProductListTable = (props: IProps) => {
       getProductsByIngredient({ variables: { itemId } });
     } else {
       setFilteredProducts([]);
+    }
+  };
+
+  // Handle search in ingredient dropdown
+  const handleIngredientSearch = (value: string) => {
+    setIngredientSearch(value);
+    getItems({
+      variables: {
+        search: value,
+        limit: 50, // Only load 50 items at a time
+        skip: 0,
+      },
+    });
+  };
+
+  // Load initial items when dropdown opens
+  const handleIngredientDropdownOpen = (open: boolean) => {
+    if (open && itemsOptions.length === 0) {
+      getItems({
+        variables: {
+          search: "",
+          limit: 50,
+          skip: 0,
+        },
+      });
     }
   };
 
@@ -196,14 +228,15 @@ const ProductListTable = (props: IProps) => {
             placeholder="Filter by ingredient"
             allowClear
             showSearch
+            loading={itemsLoading}
             style={{ width: "100%" }}
             value={selectedIngredient}
             onChange={handleIngredientFilter}
-            filterOption={(input, option) =>
-              (option?.label ?? "").toLowerCase().includes(input.toLowerCase())
-            }
+            onSearch={handleIngredientSearch}
+            onOpenChange={handleIngredientDropdownOpen}
+            filterOption={false}
             options={
-              itemsData?.itemsList?.items?.map((item: any) => ({
+              itemsOptions?.map((item: any) => ({
                 label: item.name,
                 value: item._id,
               })) || []

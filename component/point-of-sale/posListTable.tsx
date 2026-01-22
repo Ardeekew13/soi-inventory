@@ -16,7 +16,7 @@ const PosListTable = (props: IProps) => {
 	const { cart, setCart, messageApi, hasOrderNo } = props;
 	const [removeModalOpen, setRemoveModalOpen] = useState(false);
 	const [itemToRemove, setItemToRemove] = useState<CartProduct | null>(null);
-	
+
 	// Responsive breakpoints
 	const isMobile = useMediaQuery({ maxWidth: 767 });
 	const isTablet = useMediaQuery({ minWidth: 768, maxWidth: 1023 });
@@ -29,13 +29,17 @@ const PosListTable = (props: IProps) => {
 			setRemoveModalOpen(true);
 		} else {
 			// Direct removal for new orders
-			setCart((prevCart) => prevCart.filter((item) => item?._id !== record?._id));
+			setCart((prevCart) =>
+				prevCart.filter((item) => item?._id !== record?._id),
+			);
 		}
 	};
 
 	const handleConfirmRemove = () => {
 		if (itemToRemove) {
-			setCart((prevCart) => prevCart.filter((item) => item?._id !== itemToRemove?._id));
+			setCart((prevCart) =>
+				prevCart.filter((item) => item?._id !== itemToRemove?._id),
+			);
 			setItemToRemove(null);
 		}
 	};
@@ -43,8 +47,8 @@ const PosListTable = (props: IProps) => {
 	const handleQuantityChange = (id: string, value: number) => {
 		setCart((prevCart) =>
 			prevCart.map((item) =>
-				item?._id === id ? { ...item, quantity: value } : item
-			)
+				item?._id === id ? { ...item, quantity: value } : item,
+			),
 		);
 	};
 
@@ -56,16 +60,19 @@ const PosListTable = (props: IProps) => {
 			ellipsis: true,
 			render: (name: string, record: CartProduct) => (
 				<div>
-					<div style={{ 
-						fontWeight: 500, 
-						fontSize: isMobile ? 13 : 14,
-						wordBreak: 'break-word'
-					}}>
+					<div
+						style={{
+							fontWeight: 500,
+							fontSize: isMobile ? 13 : 14,
+							wordBreak: "break-word",
+						}}
+					>
 						{name}
 					</div>
 					{isMobile && (
-						<div style={{ fontSize: 11, color: '#888', marginTop: 2 }}>
-							₱{record.price.toFixed(2)} × {record.quantity} = ₱{(record.price * record.quantity).toFixed(2)}
+						<div style={{ fontSize: 11, color: "#888", marginTop: 2 }}>
+							₱{record?.price?.toFixed(2)} × {record?.quantity} = ₱
+							{(record?.price * record?.quantity).toFixed(2)}
 						</div>
 					)}
 				</div>
@@ -96,11 +103,9 @@ const PosListTable = (props: IProps) => {
 			key: "price",
 			align: "right",
 			width: 80,
-			responsive: ['md'] as any,
+			responsive: ["md"] as any,
 			render: (pricePerUnit: number) => (
-				<span style={{ fontSize: 13 }}>
-					{pesoFormatter(pricePerUnit)}
-				</span>
+				<span style={{ fontSize: 13 }}>{pesoFormatter(pricePerUnit)}</span>
 			),
 		},
 		{
@@ -109,14 +114,15 @@ const PosListTable = (props: IProps) => {
 			key: "totalPrice",
 			align: "right",
 			width: isMobile ? 0 : isTablet ? 90 : 100,
-			responsive: isMobile ? ['sm'] as any : undefined,
+			responsive: isMobile ? (["sm"] as any) : undefined,
 			render: (pricePerUnit: number, record: CartProduct) => {
 				return (
-					<span style={{ 
-						fontWeight: "bold", 
-						fontSize: isMobile ? 13 : 14,
-						color: '#1890ff'
-					}}>
+					<span
+						style={{
+							fontWeight: "bold",
+							fontSize: isMobile ? 13 : 14,
+						}}
+					>
 						{pesoFormatter(pricePerUnit * (record?.quantity ?? 0))}
 					</span>
 				);
@@ -137,7 +143,7 @@ const PosListTable = (props: IProps) => {
 							handleRemoveToCart(record);
 						}}
 					>
-						{isMobile ? '✕' : 'Remove'}
+						{isMobile ? "✕" : "Remove"}
 					</Button>
 				);
 			},
@@ -148,18 +154,16 @@ const PosListTable = (props: IProps) => {
 		<div className="full">
 			<Table
 				showHeader={!isMobile}
-				rowKey={(record: CartProduct) => record?._id?.toString() ?? ''}
+				rowKey={(record: CartProduct) => record?._id?.toString() ?? ""}
 				columns={column}
 				size={isMobile ? "small" : "middle"}
 				bordered={false}
 				dataSource={cart as CartProduct[]}
-				scroll={{ x: isMobile ? 350 : undefined }}
-				pagination={{
-					pageSize: isMobile ? 4 : isTablet ? 6 : 8,
-					simple: isMobile,
-					size: "small",
-					showSizeChanger: false,
+				scroll={{ 
+					x: isMobile ? 350 : undefined,
+					y: "calc(85vh - 500px)"
 				}}
+				pagination={false}
 			/>
 			<RemoveItemConfirmModal
 				open={removeModalOpen}

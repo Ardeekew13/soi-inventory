@@ -52,6 +52,7 @@ export const ADD_PRODUCT = gql`
 						name
 						unit
 						pricePerUnit
+						isActive
 					}
 				}
 				createdAt

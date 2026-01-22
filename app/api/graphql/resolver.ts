@@ -1,7 +1,7 @@
 import { authResolvers } from "./resolvers/authResolver";
 import { itemResolvers } from "./resolvers/itemResolvers";
 import { productResolvers } from "./resolvers/productResolvers";
-import { salesResolver } from "./resolvers/salesResolver";
+import salesResolver from "./resolvers/salesResolver";
 import discountResolvers from "./resolvers/discountResolvers";
 import serviceChargeResolvers from "./resolvers/serviceChargeResolvers";
 import { cashDrawerResolvers } from "./resolvers/cashDrawerResolver";
@@ -38,9 +38,6 @@ export const resolvers = {
   },
   Product: {
     ...productResolvers.Product,
-  },
-  SaleItem: {
-    ...salesResolver.SaleItem,
   },
   Discount: {
     ...discountResolvers.Discount,

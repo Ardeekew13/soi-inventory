@@ -1,0 +1,20 @@
+[{
+  "_id": {
+    "$oid": "6971040409323dbe4eef58f9"
+  },
+  "productId": {
+    "$oid": "690c9473efded1dab53c3381"
+  },
+  "itemId": {
+    "$oid": "6970e4d9388c74eb185b1122"
+  },
+  "quantityUsed": 0.01,
+  "isActive": true,
+  "__v": 0,
+  "createdAt": {
+    "$date": "2026-01-21T16:51:16.673Z"
+  },
+  "updatedAt": {
+    "$date": "2026-01-21T16:51:16.673Z"
+  }
+}]

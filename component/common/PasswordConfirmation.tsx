@@ -101,9 +101,16 @@ const PasswordConfirmation = ({
           password: values.password,
         },
       });
-    } catch (error) {
-      console.error("Form validation failed:", error);
+    } catch (error: any) {
       verifyingRef.current = false;
+      // Check if it's a validation error
+      if (error.errorFields) {
+        console.log("Form validation failed:", error.errorFields);
+        messageApi.error("Please enter your password");
+      } else {
+        console.error("Unexpected error:", error);
+        messageApi.error("An error occurred. Please try again.");
+      }
     }
   };
 
@@ -150,6 +157,7 @@ const PasswordConfirmation = ({
         form={passwordForm}
         name="passwordVerification"
         layout="vertical"
+        onFinish={handleVerifyPassword}
       >
         <Row gutter={4}>
           <Col span={24}>
@@ -162,6 +170,7 @@ const PasswordConfirmation = ({
                 size="large" 
                 placeholder="Enter password"
                 autoFocus
+                onPressEnter={handleVerifyPassword}
               />
             </Form.Item>
           </Col>

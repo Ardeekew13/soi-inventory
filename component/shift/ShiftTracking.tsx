@@ -19,9 +19,11 @@ import {
   CoffeeOutlined,
   LogoutOutlined,
   PlayCircleOutlined,
+  WarningOutlined,
 } from "@ant-design/icons";
 import { useMutation, useQuery } from "@apollo/client";
 import {
+  Alert,
   Button,
   Card,
   Divider,
@@ -100,6 +102,22 @@ export default function ShiftTracking() {
   const [notes, setNotes] = useState("");
   const [cameraLoading, setCameraLoading] = useState(false);
   const [noCameraMode, setNoCameraMode] = useState(false);
+
+  // Check if user has a shift schedule assigned
+  const [hasShiftSchedule, setHasShiftSchedule] = useState<boolean>(true);
+
+  useEffect(() => {
+    // Get user data from localStorage
+    const userStr = localStorage.getItem("user");
+    if (userStr) {
+      try {
+        const user = JSON.parse(userStr);
+        setHasShiftSchedule(!!user?.shiftScheduleId);
+      } catch (error) {
+        console.error("Error parsing user data:", error);
+      }
+    }
+  }, []);
 
   const { data: currentShiftData, refetch: refetchCurrentShift } = useQuery(
     MY_CURRENT_SHIFT_QUERY,
@@ -508,6 +526,19 @@ export default function ShiftTracking() {
         <ClockCircleOutlined /> Employee Shift Tracking
       </Title>
 
+      {/* Warning if no shift schedule assigned */}
+      {!hasShiftSchedule && (
+        <Alert
+          message="No Shift Schedule Assigned"
+          description="You don't have a shift schedule assigned to your account. Please contact your administrator to assign a schedule before you can start tracking your shifts."
+          type="warning"
+          showIcon
+          icon={<WarningOutlined />}
+          style={{ marginBottom: 24 }}
+          banner
+        />
+      )}
+
       {/* Current Shift */}
       <Card title="Current Shift" style={{ marginBottom: 24 }}>
         {currentShift ? (
@@ -625,19 +656,20 @@ export default function ShiftTracking() {
             }}>
               {/* Only show Shift Start when no active shift */}
               <Card
-                hoverable
+                hoverable={hasShiftSchedule}
                 style={{ 
                   textAlign: "center",
-                  border: "2px solid #52c41a",
-                  cursor: "pointer"
+                  border: hasShiftSchedule ? "2px solid #52c41a" : "2px solid #d9d9d9",
+                  cursor: hasShiftSchedule ? "pointer" : "not-allowed",
+                  opacity: hasShiftSchedule ? 1 : 0.6,
                 }}
-                onClick={() => startCamera("SHIFT_START")}
+                onClick={() => hasShiftSchedule && startCamera("SHIFT_START")}
               >
                 <Space direction="vertical" size="small">
-                  <PlayCircleOutlined style={{ fontSize: "48px", color: "#52c41a" }} />
-                  <Text strong style={{ fontSize: "16px" }}>Shift Start</Text>
+                  <PlayCircleOutlined style={{ fontSize: "48px", color: hasShiftSchedule ? "#52c41a" : "#999" }} />
+                  <Text strong style={{ fontSize: "16px", color: hasShiftSchedule ? undefined : "#999" }}>Shift Start</Text>
                   <Text type="secondary" style={{ fontSize: "12px" }}>
-                    Begin your shift
+                    {hasShiftSchedule ? "Begin your shift" : "Schedule required"}
                   </Text>
                 </Space>
               </Card>

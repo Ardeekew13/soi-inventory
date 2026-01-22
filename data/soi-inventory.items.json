@@ -1,0 +1,800 @@
+[{
+  "_id": {
+    "$oid": "6970e4d9388c74eb185b1121"
+  },
+  "name": "Cooking Oil",
+  "unit": "L",
+  "pricePerUnit": 180,
+  "currentStock": 40,
+  "isActive": true,
+  "createdAt": {
+    "$date": "2026-01-21T14:38:42.001Z"
+  },
+  "updatedAt": {
+    "$date": "2026-01-21T14:38:42.001Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "6970e4d9388c74eb185b1122"
+  },
+  "name": "All-Purpose Flour",
+  "unit": "kg",
+  "pricePerUnit": 45,
+  "currentStock": 50,
+  "isActive": true,
+  "createdAt": {
+    "$date": "2026-01-21T14:38:42.001Z"
+  },
+  "updatedAt": {
+    "$date": "2026-01-21T14:38:42.001Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "6970e4d9388c74eb185b1123"
+  },
+  "name": "White Sugar",
+  "unit": "kg",
+  "pricePerUnit": 55,
+  "currentStock": 30,
+  "isActive": true,
+  "createdAt": {
+    "$date": "2026-01-21T14:38:42.001Z"
+  },
+  "updatedAt": {
+    "$date": "2026-01-21T14:38:42.001Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "6970e4d9388c74eb185b1124"
+  },
+  "name": "Brown Sugar",
+  "unit": "kg",
+  "pricePerUnit": 65,
+  "currentStock": 20,
+  "isActive": true,
+  "createdAt": {
+    "$date": "2026-01-21T14:38:42.001Z"
+  },
+  "updatedAt": {
+    "$date": "2026-01-21T14:38:42.001Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "6970e4d9388c74eb185b1125"
+  },
+  "name": "Salt",
+  "unit": "kg",
+  "pricePerUnit": 20,
+  "currentStock": 25,
+  "isActive": true,
+  "createdAt": {
+    "$date": "2026-01-21T14:38:42.001Z"
+  },
+  "updatedAt": {
+    "$date": "2026-01-21T14:38:42.001Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "6970e4d9388c74eb185b1126"
+  },
+  "name": "Black Pepper",
+  "unit": "kg",
+  "pricePerUnit": 450,
+  "currentStock": 5,
+  "isActive": true,
+  "createdAt": {
+    "$date": "2026-01-21T14:38:42.001Z"
+  },
+  "updatedAt": {
+    "$date": "2026-01-21T14:38:42.001Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "6970e4d9388c74eb185b1127"
+  },
+  "name": "Olive Oil",
+  "unit": "L",
+  "pricePerUnit": 650,
+  "currentStock": 10,
+  "isActive": true,
+  "createdAt": {
+    "$date": "2026-01-21T14:38:42.001Z"
+  },
+  "updatedAt": {
+    "$date": "2026-01-21T14:38:42.001Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "6970e4d9388c74eb185b1128"
+  },
+  "name": "Butter",
+  "unit": "kg",
+  "pricePerUnit": 350,
+  "currentStock": 15,
+  "isActive": true,
+  "createdAt": {
+    "$date": "2026-01-21T14:38:42.001Z"
+  },
+  "updatedAt": {
+    "$date": "2026-01-21T14:38:42.001Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "6970e4d9388c74eb185b1129"
+  },
+  "name": "Margarine",
+  "unit": "kg",
+  "pricePerUnit": 180,
+  "currentStock": 20,
+  "isActive": true,
+  "createdAt": {
+    "$date": "2026-01-21T14:38:42.001Z"
+  },
+  "updatedAt": {
+    "$date": "2026-01-21T14:38:42.001Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "6970e4d9388c74eb185b112a"
+  },
+  "name": "Eggs",
+  "unit": "dozen",
+  "pricePerUnit": 120,
+  "currentStock": 50,
+  "isActive": true,
+  "createdAt": {
+    "$date": "2026-01-21T14:38:42.001Z"
+  },
+  "updatedAt": {
+    "$date": "2026-01-21T14:38:42.001Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "6970e4d9388c74eb185b112b"
+  },
+  "name": "Whole Milk",
+  "unit": "L",
+  "pricePerUnit": 90,
+  "currentStock": 30,
+  "isActive": true,
+  "createdAt": {
+    "$date": "2026-01-21T14:38:42.001Z"
+  },
+  "updatedAt": {
+    "$date": "2026-01-21T14:38:42.001Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "6970e4d9388c74eb185b112c"
+  },
+  "name": "Fresh Cream",
+  "unit": "L",
+  "pricePerUnit": 280,
+  "currentStock": 12,
+  "isActive": true,
+  "createdAt": {
+    "$date": "2026-01-21T14:38:42.001Z"
+  },
+  "updatedAt": {
+    "$date": "2026-01-21T14:38:42.001Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "6970e4d9388c74eb185b112d"
+  },
+  "name": "Cheese (Cheddar)",
+  "unit": "kg",
+  "pricePerUnit": 520,
+  "currentStock": 18,
+  "isActive": true,
+  "createdAt": {
+    "$date": "2026-01-21T14:38:42.001Z"
+  },
+  "updatedAt": {
+    "$date": "2026-01-21T14:38:42.001Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "6970e4d9388c74eb185b112e"
+  },
+  "name": "Mozzarella Cheese",
+  "unit": "kg",
+  "pricePerUnit": 480,
+  "currentStock": 15,
+  "isActive": true,
+  "createdAt": {
+    "$date": "2026-01-21T14:38:42.001Z"
+  },
+  "updatedAt": {
+    "$date": "2026-01-21T14:38:42.001Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "6970e4d9388c74eb185b112f"
+  },
+  "name": "Tomatoes",
+  "unit": "kg",
+  "pricePerUnit": 65,
+  "currentStock": 35,
+  "isActive": true,
+  "createdAt": {
+    "$date": "2026-01-21T14:38:42.001Z"
+  },
+  "updatedAt": {
+    "$date": "2026-01-21T14:38:42.001Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "6970e4d9388c74eb185b1130"
+  },
+  "name": "Potatoes",
+  "unit": "kg",
+  "pricePerUnit": 45,
+  "currentStock": 60,
+  "isActive": true,
+  "createdAt": {
+    "$date": "2026-01-21T14:38:42.001Z"
+  },
+  "updatedAt": {
+    "$date": "2026-01-21T14:38:42.001Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "6970e4d9388c74eb185b1131"
+  },
+  "name": "Carrots",
+  "unit": "kg",
+  "pricePerUnit": 50,
+  "currentStock": 25,
+  "isActive": true,
+  "createdAt": {
+    "$date": "2026-01-21T14:38:42.001Z"
+  },
+  "updatedAt": {
+    "$date": "2026-01-21T14:38:42.001Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "6970e4d9388c74eb185b1132"
+  },
+  "name": "Lettuce",
+  "unit": "kg",
+  "pricePerUnit": 70,
+  "currentStock": 15,
+  "isActive": true,
+  "createdAt": {
+    "$date": "2026-01-21T14:38:42.001Z"
+  },
+  "updatedAt": {
+    "$date": "2026-01-21T14:38:42.001Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "6970e4d9388c74eb185b1133"
+  },
+  "name": "Cabbage",
+  "unit": "kg",
+  "pricePerUnit": 40,
+  "currentStock": 20,
+  "isActive": true,
+  "createdAt": {
+    "$date": "2026-01-21T14:38:42.001Z"
+  },
+  "updatedAt": {
+    "$date": "2026-01-21T14:38:42.001Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "6970e4d9388c74eb185b1134"
+  },
+  "name": "Bell Peppers",
+  "unit": "kg",
+  "pricePerUnit": 120,
+  "currentStock": 18,
+  "isActive": true,
+  "createdAt": {
+    "$date": "2026-01-21T14:38:42.001Z"
+  },
+  "updatedAt": {
+    "$date": "2026-01-21T14:38:42.001Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "6970e4d9388c74eb185b1135"
+  },
+  "name": "Chicken Breast",
+  "unit": "kg",
+  "pricePerUnit": 280,
+  "currentStock": 30,
+  "isActive": true,
+  "createdAt": {
+    "$date": "2026-01-21T14:38:42.001Z"
+  },
+  "updatedAt": {
+    "$date": "2026-01-21T14:38:42.001Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "6970e4d9388c74eb185b1136"
+  },
+  "name": "Chicken Thighs",
+  "unit": "kg",
+  "pricePerUnit": 220,
+  "currentStock": 25,
+  "isActive": true,
+  "createdAt": {
+    "$date": "2026-01-21T14:38:42.001Z"
+  },
+  "updatedAt": {
+    "$date": "2026-01-21T14:38:42.001Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "6970e4d9388c74eb185b1137"
+  },
+  "name": "Ground Beef",
+  "unit": "kg",
+  "pricePerUnit": 350,
+  "currentStock": 28,
+  "isActive": true,
+  "createdAt": {
+    "$date": "2026-01-21T14:38:42.001Z"
+  },
+  "updatedAt": {
+    "$date": "2026-01-21T14:38:42.001Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "6970e4d9388c74eb185b1138"
+  },
+  "name": "Pork Chops",
+  "unit": "kg",
+  "pricePerUnit": 280,
+  "currentStock": 20,
+  "isActive": true,
+  "createdAt": {
+    "$date": "2026-01-21T14:38:42.001Z"
+  },
+  "updatedAt": {
+    "$date": "2026-01-21T14:38:42.001Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "6970e4d9388c74eb185b1139"
+  },
+  "name": "Bacon",
+  "unit": "kg",
+  "pricePerUnit": 450,
+  "currentStock": 12,
+  "isActive": true,
+  "createdAt": {
+    "$date": "2026-01-21T14:38:42.001Z"
+  },
+  "updatedAt": {
+    "$date": "2026-01-21T14:38:42.001Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "6970e4d9388c74eb185b113a"
+  },
+  "name": "Sausages",
+  "unit": "kg",
+  "pricePerUnit": 320,
+  "currentStock": 15,
+  "isActive": true,
+  "createdAt": {
+    "$date": "2026-01-21T14:38:42.001Z"
+  },
+  "updatedAt": {
+    "$date": "2026-01-21T14:38:42.001Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "6970e4d9388c74eb185b113b"
+  },
+  "name": "Fish Fillet (Tilapia)",
+  "unit": "kg",
+  "pricePerUnit": 280,
+  "currentStock": 22,
+  "isActive": true,
+  "createdAt": {
+    "$date": "2026-01-21T14:38:42.001Z"
+  },
+  "updatedAt": {
+    "$date": "2026-01-21T14:38:42.001Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "6970e4d9388c74eb185b113c"
+  },
+  "name": "Shrimp",
+  "unit": "kg",
+  "pricePerUnit": 550,
+  "currentStock": 10,
+  "isActive": true,
+  "createdAt": {
+    "$date": "2026-01-21T14:38:42.001Z"
+  },
+  "updatedAt": {
+    "$date": "2026-01-21T14:38:42.001Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "6970e4d9388c74eb185b113d"
+  },
+  "name": "Rice",
+  "unit": "kg",
+  "pricePerUnit": 55,
+  "currentStock": 100,
+  "isActive": true,
+  "createdAt": {
+    "$date": "2026-01-21T14:38:42.001Z"
+  },
+  "updatedAt": {
+    "$date": "2026-01-21T14:38:42.001Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "6970e4d9388c74eb185b113e"
+  },
+  "name": "Pasta (Spaghetti)",
+  "unit": "kg",
+  "pricePerUnit": 85,
+  "currentStock": 30,
+  "isActive": true,
+  "createdAt": {
+    "$date": "2026-01-21T14:38:42.001Z"
+  },
+  "updatedAt": {
+    "$date": "2026-01-21T14:38:42.001Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "6970e4d9388c74eb185b113f"
+  },
+  "name": "Pasta (Penne)",
+  "unit": "kg",
+  "pricePerUnit": 85,
+  "currentStock": 25,
+  "isActive": true,
+  "createdAt": {
+    "$date": "2026-01-21T14:38:42.001Z"
+  },
+  "updatedAt": {
+    "$date": "2026-01-21T14:38:42.001Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "6970e4d9388c74eb185b1140"
+  },
+  "name": "Bread Flour",
+  "unit": "kg",
+  "pricePerUnit": 55,
+  "currentStock": 40,
+  "isActive": true,
+  "createdAt": {
+    "$date": "2026-01-21T14:38:42.001Z"
+  },
+  "updatedAt": {
+    "$date": "2026-01-21T14:38:42.001Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "6970e4d9388c74eb185b1141"
+  },
+  "name": "Yeast",
+  "unit": "kg",
+  "pricePerUnit": 280,
+  "currentStock": 5,
+  "isActive": true,
+  "createdAt": {
+    "$date": "2026-01-21T14:38:42.001Z"
+  },
+  "updatedAt": {
+    "$date": "2026-01-21T14:38:42.001Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "6970e4d9388c74eb185b1142"
+  },
+  "name": "Baking Powder",
+  "unit": "kg",
+  "pricePerUnit": 180,
+  "currentStock": 8,
+  "isActive": true,
+  "createdAt": {
+    "$date": "2026-01-21T14:38:42.001Z"
+  },
+  "updatedAt": {
+    "$date": "2026-01-21T14:38:42.001Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "6970e4d9388c74eb185b1143"
+  },
+  "name": "Baking Soda",
+  "unit": "kg",
+  "pricePerUnit": 120,
+  "currentStock": 6,
+  "isActive": true,
+  "createdAt": {
+    "$date": "2026-01-21T14:38:42.001Z"
+  },
+  "updatedAt": {
+    "$date": "2026-01-21T14:38:42.001Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "6970e4d9388c74eb185b1144"
+  },
+  "name": "Vanilla Extract",
+  "unit": "L",
+  "pricePerUnit": 850,
+  "currentStock": 3,
+  "isActive": true,
+  "createdAt": {
+    "$date": "2026-01-21T14:38:42.001Z"
+  },
+  "updatedAt": {
+    "$date": "2026-01-21T14:38:42.001Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "6970e4d9388c74eb185b1145"
+  },
+  "name": "Soy Sauce",
+  "unit": "L",
+  "pricePerUnit": 180,
+  "currentStock": 15,
+  "isActive": true,
+  "createdAt": {
+    "$date": "2026-01-21T14:38:42.001Z"
+  },
+  "updatedAt": {
+    "$date": "2026-01-21T14:38:42.001Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "6970e4d9388c74eb185b1146"
+  },
+  "name": "Vinegar",
+  "unit": "L",
+  "pricePerUnit": 65,
+  "currentStock": 12,
+  "isActive": true,
+  "createdAt": {
+    "$date": "2026-01-21T14:38:42.001Z"
+  },
+  "updatedAt": {
+    "$date": "2026-01-21T14:38:42.001Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "6970e4d9388c74eb185b1147"
+  },
+  "name": "Ketchup",
+  "unit": "L",
+  "pricePerUnit": 220,
+  "currentStock": 18,
+  "isActive": true,
+  "createdAt": {
+    "$date": "2026-01-21T14:38:42.001Z"
+  },
+  "updatedAt": {
+    "$date": "2026-01-21T14:38:42.001Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "6970e4d9388c74eb185b1148"
+  },
+  "name": "Mayonnaise",
+  "unit": "L",
+  "pricePerUnit": 280,
+  "currentStock": 14,
+  "isActive": true,
+  "createdAt": {
+    "$date": "2026-01-21T14:38:42.001Z"
+  },
+  "updatedAt": {
+    "$date": "2026-01-21T14:38:42.001Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "6970e4d9388c74eb185b1149"
+  },
+  "name": "Mustard",
+  "unit": "L",
+  "pricePerUnit": 180,
+  "currentStock": 8,
+  "isActive": true,
+  "createdAt": {
+    "$date": "2026-01-21T14:38:42.001Z"
+  },
+  "updatedAt": {
+    "$date": "2026-01-21T14:38:42.001Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "6970e4d9388c74eb185b114a"
+  },
+  "name": "Paprika",
+  "unit": "kg",
+  "pricePerUnit": 380,
+  "currentStock": 4,
+  "isActive": true,
+  "createdAt": {
+    "$date": "2026-01-21T14:38:42.001Z"
+  },
+  "updatedAt": {
+    "$date": "2026-01-21T14:38:42.001Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "6970e4d9388c74eb185b114b"
+  },
+  "name": "Cumin",
+  "unit": "kg",
+  "pricePerUnit": 420,
+  "currentStock": 3,
+  "isActive": true,
+  "createdAt": {
+    "$date": "2026-01-21T14:38:42.001Z"
+  },
+  "updatedAt": {
+    "$date": "2026-01-21T14:38:42.001Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "6970e4d9388c74eb185b114c"
+  },
+  "name": "Oregano",
+  "unit": "kg",
+  "pricePerUnit": 350,
+  "currentStock": 3,
+  "isActive": true,
+  "createdAt": {
+    "$date": "2026-01-21T14:38:42.001Z"
+  },
+  "updatedAt": {
+    "$date": "2026-01-21T14:38:42.001Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "6970e4d9388c74eb185b114d"
+  },
+  "name": "Basil (Dried)",
+  "unit": "kg",
+  "pricePerUnit": 450,
+  "currentStock": 2,
+  "isActive": true,
+  "createdAt": {
+    "$date": "2026-01-21T14:38:42.001Z"
+  },
+  "updatedAt": {
+    "$date": "2026-01-21T14:38:42.001Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "6970e4d9388c74eb185b114e"
+  },
+  "name": "Thyme",
+  "unit": "kg",
+  "pricePerUnit": 380,
+  "currentStock": 2,
+  "isActive": true,
+  "createdAt": {
+    "$date": "2026-01-21T14:38:42.001Z"
+  },
+  "updatedAt": {
+    "$date": "2026-01-21T14:38:42.001Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "6970e4d9388c74eb185b114f"
+  },
+  "name": "Bay Leaves",
+  "unit": "kg",
+  "pricePerUnit": 320,
+  "currentStock": 2,
+  "isActive": true,
+  "createdAt": {
+    "$date": "2026-01-21T14:38:42.001Z"
+  },
+  "updatedAt": {
+    "$date": "2026-01-21T14:38:42.001Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "6970e4d9388c74eb185b1150"
+  },
+  "name": "Cocoa Powder",
+  "unit": "kg",
+  "pricePerUnit": 450,
+  "currentStock": 10,
+  "isActive": true,
+  "createdAt": {
+    "$date": "2026-01-21T14:38:42.001Z"
+  },
+  "updatedAt": {
+    "$date": "2026-01-21T14:38:42.001Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "6970e4d9388c74eb185b1151"
+  },
+  "name": "Onions",
+  "unit": "kg",
+  "pricePerUnit": 60,
+  "currentStock": 45,
+  "isActive": true,
+  "createdAt": {
+    "$date": "2026-01-21T14:38:42.001Z"
+  },
+  "updatedAt": {
+    "$date": "2026-01-21T14:38:42.001Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "6970e4d9388c74eb185b1152"
+  },
+  "name": "Garlic",
+  "unit": "kg",
+  "pricePerUnit": 180,
+  "currentStock": 12,
+  "isActive": true,
+  "createdAt": {
+    "$date": "2026-01-21T14:38:42.001Z"
+  },
+  "updatedAt": {
+    "$date": "2026-01-21T14:38:42.001Z"
+  }
+}]

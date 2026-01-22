@@ -2,7 +2,8 @@
 
 import { useQuery } from "@apollo/client";
 import { ALL_SHIFTS_QUERY } from "@/graphql/shift/shiftTracking";
-import { Card, Table, Tag, DatePicker, Select, Space, Typography, Image, Modal, Descriptions } from "antd";
+import { USERS_QUERY } from "@/graphql/settings/users";
+import { Card, Table, Tag, DatePicker, Select, Space, Typography, Image, Modal, Descriptions, Row, Col } from "antd";
 import { ClockCircleOutlined } from "@ant-design/icons";
 import dayjs, { Dayjs } from "dayjs";
 import duration from "dayjs/plugin/duration";
@@ -13,6 +14,7 @@ dayjs.extend(duration);
 
 const { Title } = Typography;
 const { Option } = Select;
+const { RangePicker } = DatePicker;
 
 interface ShiftEvent {
   _id: string;
@@ -42,13 +44,20 @@ const eventTypeLabels: Record<string, string> = {
 };
 
 export default function ShiftManagement() {
-  const [selectedDate, setSelectedDate] = useState<Dayjs | null>(null);
+  const [dateRange, setDateRange] = useState<[Dayjs | null, Dayjs | null] | null>(null);
   const [statusFilter, setStatusFilter] = useState<string | undefined>(undefined);
+  const [selectedUserId, setSelectedUserId] = useState<string | undefined>(undefined);
   const [selectedShift, setSelectedShift] = useState<Shift | null>(null);
+
+  // Fetch users for employee filter
+  const { data: usersData } = useQuery(USERS_QUERY);
+  const users = usersData?.users || [];
 
   const { data, loading, refetch } = useQuery(ALL_SHIFTS_QUERY, {
     variables: {
-      date: selectedDate ? selectedDate.format("YYYY-MM-DD") : undefined,
+      startDate: dateRange?.[0] ? dateRange[0].format("YYYY-MM-DD") : undefined,
+      endDate: dateRange?.[1] ? dateRange[1].format("YYYY-MM-DD") : undefined,
+      userId: selectedUserId,
       status: statusFilter,
       limit: 100,
       offset: 0,
@@ -77,6 +86,22 @@ export default function ShiftManagement() {
       render: (_: any, record: Shift) => {
         const startEvent = record.events.find((e: any) => e.eventType === "SHIFT_START");
         return startEvent ? dayjs(startEvent.timestamp).format("hh:mm A") : "-";
+      },
+    },
+    {
+      title: "Break Start",
+      key: "breakStart",
+      render: (_: any, record: Shift) => {
+        const breakStartEvent = record.events.find((e: any) => e.eventType === "LUNCH_BREAK_START");
+        return breakStartEvent ? dayjs(breakStartEvent.timestamp).format("hh:mm A") : "-";
+      },
+    },
+    {
+      title: "Break End",
+      key: "breakEnd",
+      render: (_: any, record: Shift) => {
+        const breakEndEvent = record.events.find((e: any) => e.eventType === "LUNCH_BREAK_END");
+        return breakEndEvent ? dayjs(breakEndEvent.timestamp).format("hh:mm A") : "-";
       },
     },
     {
@@ -170,36 +195,57 @@ export default function ShiftManagement() {
       </Title>
 
       <Card style={{ marginBottom: 24 }}>
-        <Space size="middle">
-          <DatePicker
-            placeholder="Filter by date"
-            value={selectedDate}
-            onChange={(date) => {
-              setSelectedDate(date);
-              refetch({
-                date: date ? date.format("YYYY-MM-DD") : undefined,
-                status: statusFilter,
-              });
-            }}
-            style={{ width: 200 }}
-          />
-          <Select
-            placeholder="Filter by status"
-            value={statusFilter}
-            onChange={(value) => {
-              setStatusFilter(value);
-              refetch({
-                date: selectedDate ? selectedDate.format("YYYY-MM-DD") : undefined,
-                status: value,
-              });
-            }}
-            style={{ width: 200 }}
-            allowClear
-          >
-            <Option value="IN_PROGRESS">In Progress</Option>
-            <Option value="COMPLETED">Completed</Option>
-          </Select>
-        </Space>
+        <Row gutter={[16, 16]}>
+          <Col xs={24} sm={12} md={8}>
+            <RangePicker
+              placeholder={["Start Date", "End Date"]}
+              value={dateRange}
+              onChange={(dates) => {
+                setDateRange(dates as [Dayjs | null, Dayjs | null] | null);
+              }}
+              style={{ width: "100%" }}
+              format="YYYY-MM-DD"
+            />
+          </Col>
+          <Col xs={24} sm={12} md={8}>
+            <Select
+              placeholder="Filter by employee"
+              value={selectedUserId}
+              onChange={(value) => {
+                setSelectedUserId(value);
+              }}
+              style={{ width: "100%" }}
+              allowClear
+              showSearch
+              optionFilterProp="children"
+              filterOption={(input, option: any) =>
+                option?.children?.toLowerCase().indexOf(input.toLowerCase()) >= 0
+              }
+            >
+              {users.map((user: any) => (
+                <Option key={user._id} value={user._id}>
+                  {user.firstName && user.lastName
+                    ? `${user.firstName} ${user.lastName} (${user.username})`
+                    : user.username}
+                </Option>
+              ))}
+            </Select>
+          </Col>
+          <Col xs={24} sm={12} md={8}>
+            <Select
+              placeholder="Filter by status"
+              value={statusFilter}
+              onChange={(value) => {
+                setStatusFilter(value);
+              }}
+              style={{ width: "100%" }}
+              allowClear
+            >
+              <Option value="IN_PROGRESS">In Progress</Option>
+              <Option value="COMPLETED">Completed</Option>
+            </Select>
+          </Col>
+        </Row>
       </Card>
 
       <Card>

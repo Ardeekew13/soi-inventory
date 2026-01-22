@@ -10,20 +10,14 @@ import User from "../models/User";
 export const itemResolvers = {
 	Query: {
 		itemsList: async (_: unknown, args: PaginationListArgs, { user }: GraphQLContext) => {
-			// Check authentication
 			if (!user) {
 				throw new Error("Not authenticated");
 			}
 
-			// Get user permissions from database
-			const dbUser = await User.findById(user.id);
-			if (!dbUser) {
-				throw new Error("User not found");
-			}
-
-			// Check permissions
-			const permissions = dbUser.permissions || {};
-			if (!permissions.inventory?.includes('view')) {
+			// Use permissions from context (already loaded during authentication)
+			// No need to fetch user again from database
+			const permissions = user.permissions || {};
+			if (user.role !== 'SUPER_ADMIN' && !permissions.inventory?.includes('view')) {
 				throw new Error("Unauthorized - No permission to view inventory");
 			}
 
@@ -31,32 +25,29 @@ export const itemResolvers = {
 			const filter = args.search
 				? { name: { $regex: args.search, $options: "i" }, isActive: true }
 				: { isActive: true };
+			
+			// Use lean() for better performance (returns plain objects instead of Mongoose documents)
 			const [items, totalCount] = await Promise.all([
-				Item.find(filter).limit(limit).skip(skip),
+				Item.find(filter).select('_id name unit pricePerUnit currentStock createdAt updatedAt isActive').lean().limit(limit).skip(skip).sort({ name: 1 }),
 				Item.countDocuments(filter),
 			]);
-			const formattedItems = items.map((item) => ({
-				...item?.toObject(),
+			
+			const formattedItems = items.map((item: any) => ({
+				...item,
 				createdAt: new Date(item.createdAt).toISOString(),
 				updatedAt: new Date(item.updatedAt).toISOString(),
 			}));
-			return { items:formattedItems, totalCount };
+			
+			return { items: formattedItems, totalCount };
 		},
 		inactiveItemsList: async (_: unknown, args: PaginationListArgs, { user }: GraphQLContext) => {
-			// Check authentication
 			if (!user) {
 				throw new Error("Not authenticated");
 			}
 
-			// Get user permissions from database
-			const dbUser = await User.findById(user.id);
-			if (!dbUser) {
-				throw new Error("User not found");
-			}
-
-			// Check permissions
-			const permissions = dbUser.permissions || {};
-			if (!permissions.inventory?.includes('view')) {
+			// Use permissions from context (no extra DB query)
+			const permissions = user.permissions || {};
+			if (user.role !== 'SUPER_ADMIN' && !permissions.inventory?.includes('view')) {
 				throw new Error("Unauthorized - No permission to view inventory");
 			}
 
@@ -64,16 +55,20 @@ export const itemResolvers = {
 			const filter = args.search
 				? { name: { $regex: args.search, $options: "i" }, isActive: false }
 				: { isActive: false };
+			
+			// Use lean() and select specific fields for better performance
 			const [items, totalCount] = await Promise.all([
-				Item.find(filter).limit(limit).skip(skip),
+				Item.find(filter).select('_id name unit pricePerUnit currentStock createdAt updatedAt isActive').lean().limit(limit).skip(skip).sort({ name: 1 }),
 				Item.countDocuments(filter),
 			]);
-			const formattedItems = items.map((item) => ({
-				...item?.toObject(),
+			
+			const formattedItems = items.map((item: any) => ({
+				...item,
 				createdAt: new Date(item.createdAt).toISOString(),
 				updatedAt: new Date(item.updatedAt).toISOString(),
 			}));
-			return { items:formattedItems, totalCount };
+			
+			return { items: formattedItems, totalCount };
 		},
 	},
 	Item: {

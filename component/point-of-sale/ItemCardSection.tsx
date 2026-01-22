@@ -72,15 +72,11 @@ const ItemCardSection = ({
       style={{ height: "100%" }}
       styles={{ 
         body: { 
-          height: "calc(100% - 60px)", 
-          overflowY: "auto",
           padding: isMobile ? "12px" : "24px"
         }
       }}
     >
-      <div style={{ height: "100%" }}>
-        <ItemPosCard {...tableProps} />
-      </div>
+      <ItemPosCard {...tableProps} />
     </Card>
   );
 };

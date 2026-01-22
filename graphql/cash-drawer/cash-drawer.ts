@@ -36,6 +36,7 @@ export const GET_CASH_DRAWER_HISTORY = gql`
       _id
       openedBy
       openedAt
+      closedBy
       closedAt
       openingBalance
       closingBalance
@@ -72,8 +73,8 @@ export const OPEN_CASH_DRAWER = gql`
 `;
 
 export const CLOSE_CASH_DRAWER = gql`
-  mutation CloseCashDrawer($closingBalance: Float!) {
-    closeCashDrawer(closingBalance: $closingBalance) {
+  mutation CloseCashDrawer($closingBalance: Float!, $drawerId: ID) {
+    closeCashDrawer(closingBalance: $closingBalance, drawerId: $drawerId) {
       success
       message
       data {

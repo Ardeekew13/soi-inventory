@@ -6,6 +6,16 @@ export const LOGIN_MUTATION = gql`
       token
       success
       message
+      user {
+        _id
+        username
+        firstName
+        lastName
+        role
+        permissions
+        isActive
+        shiftScheduleId
+      }
     }
   }
 `;

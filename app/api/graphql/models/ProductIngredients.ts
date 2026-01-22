@@ -29,6 +29,7 @@ const productIngredientSchema = new mongoose.Schema(
 // Equivalent of @@unique([productId, itemId])
 productIngredientSchema.index({ productId: 1, itemId: 1 }, { unique: true });
 productIngredientSchema.index({ isActive: 1 }); // For filtering active ingredients
+productIngredientSchema.index({ productId: 1 }); // For finding ingredients by product (critical for sales)
 
 const ProductIngredient =
   mongoose.models.ProductIngredient ||

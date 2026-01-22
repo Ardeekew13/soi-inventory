@@ -1,0 +1,44 @@
+[
+  {
+    "productId": {"$oid": "6970dea6388c74eb185b1101"},
+    "itemId": {"$oid": "6970e4d9388c74eb185b1137"},
+    "quantityUsed": 0.2,
+    "isActive": true
+  },
+  {
+    "productId": {"$oid": "6970dea6388c74eb185b1101"},
+    "itemId": {"$oid": "6970e4d9388c74eb185b1132"},
+    "quantityUsed": 0.05,
+    "isActive": true
+  },
+  {
+    "productId": {"$oid": "6970dea6388c74eb185b1101"},
+    "itemId": {"$oid": "6970e4d9388c74eb185b112f"},
+    "quantityUsed": 0.05,
+    "isActive": true
+  },
+  {
+    "productId": {"$oid": "6970dea6388c74eb185b1101"},
+    "itemId": {"$oid": "6970e4d9388c74eb185b1151"},
+    "quantityUsed": 0.03,
+    "isActive": true
+  },
+  {
+    "productId": {"$oid": "6970dea6388c74eb185b1101"},
+    "itemId": {"$oid": "6970e4d9388c74eb185b112d"},
+    "quantityUsed": 0.05,
+    "isActive": true
+  },
+  {
+    "productId": {"$oid": "6970dea6388c74eb185b1101"},
+    "itemId": {"$oid": "6970e4d9388c74eb185b1148"},
+    "quantityUsed": 0.02,
+    "isActive": true
+  },
+  {
+    "productId": {"$oid": "6970dea6388c74eb185b1101"},
+    "itemId": {"$oid": "6970e4d9388c74eb185b1147"},
+    "quantityUsed": 0.02,
+    "isActive": true
+  }
+]
